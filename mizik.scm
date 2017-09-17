@@ -3,5 +3,10 @@
 (use-modules (mpd)
              (ncurses curses))
 
+(define stdscr (initscr))
+
 (let main ()
-  (display "Hello!"))
+  (addstr  stdscr "Hello!")
+  (refresh stdscr))
+
+(endwin)
