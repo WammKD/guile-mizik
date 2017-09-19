@@ -2,6 +2,7 @@
 !#
 (use-modules (mpd)
              (ncurses curses))
+(include     "./windows.scm")
 
 (setlocale LC_ALL "")
 
@@ -12,15 +13,14 @@
 (keypad! stdscr #t)
 (refresh stdscr)
 
-(define header (newwin 1 (cadr (getmaxyx stdscr)) 0 0))
-(chgat header -1 A_REVERSE 0)
-(addstr header "Blink Don't Blink")
-(refresh header)
+(define header (windows::build-header-bar stdscr "Blink Don't Blink"))
 
 (let main [(past_dimensions (getmaxyx stdscr))]
-  (move stdscr 1 0)
-  (refresh stdscr)
+  ;; (move stdscr 1 0)
+  ;; (refresh stdscr)
+  (header #:rebuild)
   (getch   stdscr)
+  (header #:delete)
   (getch   stdscr)
   (getch   stdscr)
   (getch   stdscr))
