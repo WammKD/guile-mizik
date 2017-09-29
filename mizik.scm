@@ -13,14 +13,35 @@
 (keypad! stdscr #t)
 (refresh stdscr)
 
-(define header (windows::build-header-bar stdscr "Blink Don't Blink"))
+(define left   (newwin
+                 (car (getmaxyx stdscr))
+                 (- (floor (/ (cadr (getmaxyx stdscr)) 3)) 1)
+                 0
+                 0))
+(refresh left)
+(define middle (newwin
+                 (car (getmaxyx stdscr))
+                 (- (floor (/ (cadr (getmaxyx stdscr)) 3)) 1)
+                 0
+                 (floor (/ (cadr (getmaxyx stdscr)) 3))))
+(refresh middle)
+(define right  (newwin
+                 (car (getmaxyx stdscr))
+                 (floor (/ (cadr (getmaxyx stdscr)) 3))
+                 0
+                 (* (floor (/ (cadr (getmaxyx stdscr)) 3)) 2)))
+(refresh right)
+
+(define   left-header (windows::build-header-bar left   "Blink Don't Blink"))
+(define middle-header (windows::build-header-bar middle "Fuck"))
+(define  right-header (windows::build-header-bar right  "Damn"))
 
 (let main [(past_dimensions (getmaxyx stdscr))]
   ;; (move stdscr 1 0)
   ;; (refresh stdscr)
-  (header #:rebuild)
-  (getch   stdscr)
-  (header #:delete)
+  ;; (header #:rebuild)
+  ;; (getch   stdscr)
+  ;; (header #:delete)
   (getch   stdscr)
   (getch   stdscr)
   (getch   stdscr))

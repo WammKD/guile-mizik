@@ -3,9 +3,18 @@
 (use-modules (ncurses curses))
 
 (define* (windows::build-header-bar containing_window caption)
-  (define window (let [(header (newwin 1 (cadr (getmaxyx containing_window))
-                                       0 0))]
-                   (addstr header caption)
+  (define window (let* [(len    (cadr (getmaxyx containing_window)))
+                        (header (newwin
+                                  1
+                                  len
+                                  (getbegy containing_window)
+                                  (getbegx containing_window)))
+                        (capt   (if (> (string-length caption) len)
+                                    (string-append
+                                      (substring caption 0 (- len 1))
+                                      "…")
+                                  caption))]
+                   (addstr header capt)
                    (chgat header -1 A_REVERSE 0 #:x 0 #:y 0)
                    
                    (refresh header)
