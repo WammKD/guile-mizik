@@ -9,9 +9,9 @@
                                   len
                                   (getbegy containing_window)
                                   (getbegx containing_window)))
-                        (capt   (if (> (string-length caption) len)
+                        (capt   (if (> (string-length caption) (- len 1))
                                     (string-append
-                                      (substring caption 0 (- len 1))
+                                      (substring caption 0 (- len 2))
                                       "…")
                                   caption))]
                    (addstr header capt)

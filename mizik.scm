@@ -7,21 +7,21 @@
 (setlocale LC_ALL "")
 
 (define stdscr (initscr))
+(refresh stdscr)
 (noecho!)
 (cbreak!)
 (start-color!)
 (keypad! stdscr #t)
-(refresh stdscr)
 
 (define left   (newwin
                  (car (getmaxyx stdscr))
-                 (- (floor (/ (cadr (getmaxyx stdscr)) 3)) 1)
+                 (floor (/ (cadr (getmaxyx stdscr)) 3))
                  0
                  0))
 (refresh left)
 (define middle (newwin
                  (car (getmaxyx stdscr))
-                 (- (floor (/ (cadr (getmaxyx stdscr)) 3)) 1)
+                 (floor (/ (cadr (getmaxyx stdscr)) 3))
                  0
                  (floor (/ (cadr (getmaxyx stdscr)) 3))))
 (refresh middle)
