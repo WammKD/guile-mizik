@@ -113,5 +113,9 @@
     (cond
      [(eq? method #:get-captions-to-ratios-of-win)  caption_ratios]
      [(eq? method #:get-subwindows-with-header)    windows_headers]
-     [(eq? method #:rebuild)                                "Fuck"]
+     [(eq? method #:rebuild)                       (apply
+                                                     windows::build-main-window
+                                                     (list
+                                                       containing_window
+                                                       captions))]
      [(eq? method #:erase)                         "do this later"])))
