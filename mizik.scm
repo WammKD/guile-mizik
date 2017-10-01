@@ -6,6 +6,7 @@
 
 (setlocale LC_ALL "")
 
+;; Initialize the main screen and settings
 (define stdscr (initscr))
 (refresh stdscr)
 (noecho!)
@@ -13,28 +14,11 @@
 (start-color!)
 (keypad! stdscr #t)
 
-(define left   (newwin
-                 (car (getmaxyx stdscr))
-                 (floor (/ (cadr (getmaxyx stdscr)) 3))
-                 0
-                 0))
-(refresh left)
-(define middle (newwin
-                 (car (getmaxyx stdscr))
-                 (floor (/ (cadr (getmaxyx stdscr)) 3))
-                 0
-                 (floor (/ (cadr (getmaxyx stdscr)) 3))))
-(refresh middle)
-(define right  (newwin
-                 (car (getmaxyx stdscr))
-                 (floor (/ (cadr (getmaxyx stdscr)) 3))
-                 0
-                 (* (floor (/ (cadr (getmaxyx stdscr)) 3)) 2)))
-(refresh right)
+;; Initialize the MPD client
+(define client (new-mpd-client))
 
-(define   left-header (windows::build-header-bar left   "Blink Don't Blink"))
-(define middle-header (windows::build-header-bar middle "Fuck"))
-(define  right-header (windows::build-header-bar right  "Damn"))
+(define main (windows::build-main-window stdscr "Blink Don't Blink"
+                                         "Fuck" "Damn"))
 
 (let main [(past_dimensions (getmaxyx stdscr))]
   ;; (move stdscr 1 0)
@@ -43,6 +27,7 @@
   ;; (getch   stdscr)
   ;; (header #:delete)
   (getch   stdscr)
+  ;; (middle-header #:erase)
   (getch   stdscr)
   (getch   stdscr))
 
