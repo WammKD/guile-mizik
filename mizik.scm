@@ -17,8 +17,8 @@
 ;; Initialize the MPD client
 (define client (new-mpd-client))
 
-(define main (windows::build-main-window stdscr "Blink Don't Blink"
-                                         "Fuck" "Damn"))
+(define main-window (windows::build-main-window stdscr "Blink Don't Blink"
+                                                "Fuck" "Damn"))
 
 (let main [(past_dimensions (getmaxyx stdscr))]
   ;; (move stdscr 1 0)
@@ -26,9 +26,9 @@
   ;; (header #:rebuild)
   ;; (getch   stdscr)
   ;; (header #:delete)
-  (getch   stdscr)
-  ;; (middle-header #:erase)
-  (getch   stdscr)
-  (getch   stdscr))
+  (getch        stdscr)
+  (main-window #:erase)
+  (getch        stdscr)
+  (getch        stdscr))
 
 (endwin)
