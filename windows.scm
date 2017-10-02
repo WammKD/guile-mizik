@@ -45,37 +45,52 @@
                                      (cadr pos)))])))
 
 (define (windows::build-main-window containing_window . captions)
-  (define caption_ratios (let [(len   (getmaxx containing_window))
-                               (total (fold
-                                        (lambda (x y)
-                                          (+ (* (string-length x) 1.0) y))
-                                        0
-                                        captions))]
-                           (let temp [(result          '())
-                                      (current    captions)
-                                      (cumulative        0)]
-                             (if (null? (cdr current))
-                                 (reverse (cons (cons
-                                                  (car current)
-                                                  (- len cumulative)) result))
-                               (let* [(cc      (car current))
-                                      (rounded (inexact->exact
-                                                 (round
-                                                   (* (/ (string-length
-                                                           cc) total) len))))]
-                                 (temp
-                                  (cons (cons cc rounded) result)
-                                  (cdr current)
-                                  (+ cumulative rounded)))))))
+  (define windows (let [(len    (getmaxx containing_window))
+                        (height (getmaxy containing_window))
+                        (total  (fold
+                                  (lambda (x y)
+                                    (+ (* (string-length x) 1.0) y))
+                                  0
+                                  captions))]
+                    (let temp [(result       '())
+                               (current captions)
+                               (offset         0)]
+                      (if (null? current)
+                          (reverse result)
+                        (let* [(cc      (car current))
+                               (ratio   (/ (string-length cc) total))
+                               (rounded (inexact->exact (round (* ratio len))))
+                               (win     (newwin
+                                          height
+                                          (if (null? (cdr current))
+                                              (- len offset)
+                                            rounded)
+                                          0
+                                          offset))]
+                          (refresh win)
+                          ;; Can't build/refresh header before containing
+                          (temp
+                            (cons
+                              (container
+                                win
+                                (windows::build-header-bar win cc)
+                                ratio)
+                              result)
+                            (cdr current)
+                            (+ offset rounded)))))))
 
-  (define (container win header-bar)
-    (lambda  (method . xs)
+  (define (container win header_bar percentage)
+    (lambda (method . xs)
       (cond
-       [(eq? method #:get-header-object) header-bar]
-       [(eq? method #:get-window)        win]
+       [(eq? method #:get-header-object)     header_bar]
+       [(eq? method #:get-window)                   win]
        [(eq? method #:get-maxyx)         (getmaxyx win)]
+       [(eq? method #:rebuild)           (resize
+                                           window
+                                           (getmaxy containing_window)
+                                           )]
        [(eq? method #:erase)             (let [(pos (getyx containing_window))]
-                                           (header-bar #:erase)
+                                           (header_bar #:erase)
 
                                            (erase   win)
                                            (refresh win)
@@ -87,38 +102,11 @@
                                              (car  pos)
                                              (cadr pos)))])))
 
-  (define windows (let temp [(offset              0)
-                             (result            '())
-                             (c_rs   caption_ratios)]
-                    (if (null? c_rs)
-                        (reverse result)                              
-                      (let* [(capt_ratio (car c_rs))
-                             (len        (cdr capt_ratio))
-                             (win        (newwin
-                                           (getmaxy containing_window)
-                                           len
-                                           0
-                                           offset))]
-                        (refresh win)
-                        ;; Can't build/refresh header before containing_window
-                        (let [(header (windows::build-header-bar
-                                        win
-                                        (car capt_ratio)))]
-                          (temp
-                            (+ offset len)
-                            (cons (container win header) result)
-                            (cdr c_rs)))))))
-
   (lambda (method . xs)
     (cond
-     [(eq? method #:get-captions-to-ratios-of-win) caption_ratios]
-     [(eq? method #:get-windows)                          windows]
-     [(eq? method #:rebuild)                       (apply
-                                                     windows::build-main-window
-                                                     (list
-                                                       containing_window
-                                                       captions))]
-     [(eq? method #:erase)                         (for-each
-                                                     (lambda (x)
-                                                       (x #:erase))
-                                                     windows)])))
+     [(eq? method #:get-windows) windows]
+     [(eq? method #:rebuild)     (apply
+                                   windows::build-main-window
+                                   (list containing_window captions))]
+     [(eq? method #:erase)       (for-each (lambda (x)
+                                             (x #:erase)) windows)])))
