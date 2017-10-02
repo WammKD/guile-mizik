@@ -27,7 +27,11 @@
      [(eq? method #:get-caption) caption]
      [(eq? method #:get-window)  window]
      [(eq? method #:get-maxyx)   (getmaxyx window)]
-     [(eq? method #:rebuild)     (resize
+     [(eq? method #:rebuild)     (mvwin
+                                   window
+                                   (getbegy containing_window)
+                                   (getbegx containing_window))
+                                 (resize
                                    window
                                    1
                                    (getmaxx containing_window))
@@ -85,10 +89,31 @@
        [(eq? method #:get-header-object)     header_bar]
        [(eq? method #:get-window)                   win]
        [(eq? method #:get-maxyx)         (getmaxyx win)]
-       [(eq? method #:rebuild)           (resize
-                                           window
-                                           (getmaxy containing_window)
-                                           )]
+       [(eq? method #:get-ratio)             percentage]
+       [(eq? method #:rebuild)           (let* [(cw_len   (getmaxx
+                                                            containing_window))
+                                                (offset   (car  xs))
+                                                (last_w?  (cadr xs))
+                                                (nw_width (inexact->exact
+                                                            (round
+                                                              (*
+                                                                percentage
+                                                                cw_len))))]
+                                           (mvwin
+                                             win
+                                             (getbegy containing_window)
+                                             offset)
+                                           (resize
+                                             win
+                                             (getmaxy containing_window)
+                                             (if last_w?
+                                                 (- cw_len offset)
+                                               nw_width))
+                                           (refresh win)
+
+                                           (header_bar #:rebuild)
+
+                                           (+ nw_width offset))]
        [(eq? method #:erase)             (let [(pos (getyx containing_window))]
                                            (header_bar #:erase)
 
@@ -105,8 +130,16 @@
   (lambda (method . xs)
     (cond
      [(eq? method #:get-windows) windows]
-     [(eq? method #:rebuild)     (apply
-                                   windows::build-main-window
-                                   (list containing_window captions))]
+     [(eq? method #:rebuild)     (let temp [(offset          0)
+                                            (remaining windows)]
+                                   (if (null? (cdr remaining))
+                                       ((car remaining) #:rebuild
+                                                          offset
+                                                          #t)
+                                     (temp
+                                       ((car remaining) #:rebuild
+                                                          offset
+                                                          #f)
+                                       (cdr remaining))))]
      [(eq? method #:erase)       (for-each (lambda (x)
                                              (x #:erase)) windows)])))
