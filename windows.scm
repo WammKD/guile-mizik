@@ -27,14 +27,14 @@
      [(eq? method #:get-caption) caption]
      [(eq? method #:get-window)  window]
      [(eq? method #:get-maxyx)   (getmaxyx window)]
-     [(eq? method #:rebuild)     (mvwin
-                                   window
-                                   (getbegy containing_window)
-                                   (getbegx containing_window))
-                                 (resize
+     [(eq? method #:rebuild)     (resize
                                    window
                                    1
                                    (getmaxx containing_window))
+                                 (mvwin
+                                   window
+                                   (getbegy containing_window)
+                                   (getbegx containing_window))
                                  (chgat window -1 A_REVERSE 0 #:x 0 #:y 0)
                                  (refresh window)]
      [(eq? method #:erase)       (let [(pos (getyx containing_window))]
@@ -99,16 +99,16 @@
                                                               (*
                                                                 percentage
                                                                 cw_len))))]
-                                           (mvwin
-                                             win
-                                             (getbegy containing_window)
-                                             offset)
                                            (resize
                                              win
                                              (getmaxy containing_window)
                                              (if last_w?
                                                  (- cw_len offset)
                                                nw_width))
+                                           (mvwin
+                                             win
+                                             (getbegy containing_window)
+                                             offset)
                                            (refresh win)
 
                                            (header_bar #:rebuild)
