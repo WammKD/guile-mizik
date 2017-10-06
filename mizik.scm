@@ -8,37 +8,43 @@
 
 ;; Initialize the main screen and settings
 (define stdscr (initscr))
-(refresh stdscr)
+(use-default-colors)
 (noecho!)
 (cbreak!)
 (start-color!)
 (keypad! stdscr #t)
+(refresh stdscr)
 
 ;; Initialize the MPD client
 (define client (new-mpd-client))
 
-(define main-window (windows::build-main-window stdscr "Blink Don't Blink"
-                                                "Fuck" "Damn"))
+;; (define main-window (windows::build-main-window stdscr "Blink Don't Blink"
+;;                                                 "Fuck" "Damn"))
 
-(let main [(past_dimensions (getmaxyx stdscr))]
+(define main-window (windows::build-main-window
+                      stdscr
+                      "Track"
+                      "Title"
+                      "Genre"
+                      "Artist"
+                      "Album"
+                      "Time"))
+
+(let main [(past_dimensions (getmaxyx stdscr))
+           (num                             0)]
   ;; (move stdscr 1 0)
   ;; (refresh stdscr)
   ;; (header #:rebuild)
   ;; (getch   stdscr)
   ;; (header #:delete)
-  (getch          stdscr)
-  (getch          stdscr)
-  (getch          stdscr)
-  (getch          stdscr)
-  (getch          stdscr)
-  (main-window #:rebuild)
-  (getch          stdscr)
-  (getch          stdscr)
-  (getch          stdscr)
-  (getch          stdscr)
-  (getch          stdscr)
-  (main-window #:rebuild)
-  (getch          stdscr)
-  (getch          stdscr))
+  (let [(shit (getmaxyx stdscr))]
+    (refresh stdscr)
+    (when (or
+            (not (= (car  past_dimensions) (car  shit)))
+            (not (= (cadr past_dimensions) (cadr shit))))
+      (main-window #:rebuild))
+
+    (when (< num 50000000)
+      (main shit (1+ num)))))
 
 (endwin)
