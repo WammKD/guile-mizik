@@ -23,6 +23,7 @@
 
 (define main-window (windows::build-main-window
                       stdscr
+                      #f
                       "Track"
                       "Title"
                       "Genre"

@@ -4,18 +4,24 @@
              (srfi srfi-1))
 
 (define* (windows::build-header-bar containing_window caption)
+  (define (transform-caption)
+    (let [(len      (getmaxx containing_window))
+          (ELLIPSIS                         "…")]
+      (if (< len 2)
+          ""
+        (if (= len 2)
+            ELLIPSIS
+          (if (> (string-length caption) (- len 1))
+              (string-append (substring caption 0 (- len 2)) ELLIPSIS)
+            caption)))))
+
   (define window (let* [(len    (getmaxx containing_window))
                         (header (newwin
                                   1
                                   len
                                   (getbegy containing_window)
-                                  (getbegx containing_window)))
-                        (capt   (if (> (string-length caption) (- len 1))
-                                    (string-append
-                                      (substring caption 0 (- len 2))
-                                      "…")
-                                  caption))]
-                   (addstr header capt)
+                                  (getbegx containing_window)))]
+                   (addstr header (transform-caption))
                    (chgat header -1 A_REVERSE 0 #:x 0 #:y 0)
                    
                    (refresh header)
@@ -35,6 +41,8 @@
                                    window
                                    (getbegy containing_window)
                                    (getbegx containing_window))
+                                 (erase window)
+                                 (addstr window (transform-caption))
                                  (chgat window -1 A_REVERSE 0 #:x 0 #:y 0)
                                  (refresh window)]
      [(eq? method #:erase)       (let [(pos (getyx containing_window))]
@@ -48,40 +56,51 @@
                                      (car  pos)
                                      (cadr pos)))])))
 
-(define (windows::build-main-window containing_window . captions)
-  (define windows (let [(len    (getmaxx containing_window))
-                        (height (getmaxy containing_window))
-                        (total  (fold
-                                  (lambda (x y)
-                                    (+ (* (string-length x) 1.0) y))
-                                  0
-                                  captions))]
-                    (let temp [(result       '())
-                               (current captions)
-                               (offset         0)]
-                      (if (null? current)
-                          (reverse result)
-                        (let* [(cc      (car current))
-                               (ratio   (/ (string-length cc) total))
-                               (rounded (inexact->exact (round (* ratio len))))
-                               (win     (newwin
-                                          height
-                                          (if (null? (cdr current))
-                                              (- len offset)
-                                            rounded)
-                                          0
-                                          offset))]
-                          (refresh win)
-                          ;; Can't build/refresh header before containing
-                          (temp
-                            (cons
-                              (container
-                                win
-                                (windows::build-header-bar win cc)
-                                ratio)
-                              result)
-                            (cdr current)
-                            (+ offset rounded)))))))
+(define (windows::build-main-window containing_window all_wins . captions)
+  (define windows (if (or
+                        (and      all_wins  (not (null? captions)))
+                        (and (not all_wins)      (null? captions)))
+                      (error (string-append
+                               "In procedure windows::build-main-window: "
+                               "Either windows must be passed or captions "
+                               "to build windows from; both or neither can "
+                               "be passed to this function."))
+                    (if all_wins
+                        all_wins
+                      (let [(len    (getmaxx containing_window))
+                            (height (getmaxy containing_window))
+                            (total  (fold
+                                      (lambda (x y)
+                                        (+ (* (string-length x) 1.0) y))
+                                      0
+                                      captions))]
+                        (let temp [(result       '())
+                                   (current captions)
+                                   (offset         0)]
+                          (if (null? current)
+                              (reverse result)
+                            (let* [(cc      (car current))
+                                   (ratio   (/ (string-length cc) total))
+                                   (rounded (inexact->exact (round
+                                                              (* ratio len))))
+                                   (win     (newwin
+                                              height
+                                              (if (null? (cdr current))
+                                                  (- len offset)
+                                                rounded)
+                                              0
+                                              offset))]
+                              (refresh win)
+                              ;; Can't build/refresh header before containing
+                              (temp
+                                (cons
+                                  (container
+                                    win
+                                    (windows::build-header-bar win cc)
+                                    ratio)
+                                  result)
+                                (cdr current)
+                                (+ offset rounded)))))))))
 
   (define (container win header_bar percentage)
     (lambda (method . xs)
