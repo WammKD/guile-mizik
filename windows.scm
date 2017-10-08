@@ -165,24 +165,30 @@
 
   (lambda (method . xs)
     (cond
-     [(eq? method #:get-windows) windows]
-     [(eq? method #:rebuild)     (windows::build-main-window
-                                   containing_window
-                                   (let temp [(offset          0)
-                                              (remaining windows)
-                                              (final         '())]
-                                     (if (null? (cdr remaining))
-                                         (reverse (cons
-                                                    ((car remaining) #:rebuild
-                                                                       offset
-                                                                       #t)
-                                                    final))
-                                       (let [(win ((car remaining) #:rebuild
-                                                                     offset
-                                                                     #f))]
-                                         (temp
-                                           (+ offset (win #:get-max-x))
-                                           (cdr remaining)
-                                           (cons win final))))))]
-     [(eq? method #:erase)       (for-each (lambda (x)
-                                             (x #:erase)) windows)])))
+     [(eq? method #:get-windows)                          windows]
+     [(eq? method #:get-con-max-y-x) (getmaxyx containing_window)]
+     [(eq? method #:get-con-max-y)   (getmaxy  containing_window)]
+     [(eq? method #:get-con-max-x)   (getmaxx  containing_window)]
+     [(eq? method #:refresh-contain) (refresh  containing_window)]
+     [(eq? method #:rebuild)         (windows::build-main-window
+                                       containing_window
+                                       (let temp [(offset          0)
+                                                  (remaining windows)
+                                                  (final         '())]
+                                         (if (null? (cdr remaining))
+                                             (reverse
+                                               (cons
+                                                 ((car remaining) #:rebuild
+                                                                    offset
+                                                                    #t)
+                                                 final))
+                                           (let [(win ((car remaining)
+                                                        #:rebuild
+                                                          offset
+                                                          #f))]
+                                             (temp
+                                               (+ offset (win #:get-max-x))
+                                               (cdr remaining)
+                                               (cons win final))))))]
+     [(eq? method #:erase)           (for-each (lambda (x)
+                                                 (x #:erase)) windows)])))

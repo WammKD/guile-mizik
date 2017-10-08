@@ -31,21 +31,28 @@
                       "Album"
                       "Time"))
 
-(let main [(past_dimensions (getmaxyx stdscr))
-           (num                             0)]
+(let main [(main_window (windows::build-main-window stdscr  #f
+                                                    "Track" "Title"
+                                                    "Genre" "Artist"
+                                                    "Album" "Time"))
+           (past_dimensions                       (getmaxyx stdscr))
+           (num                                                   0)]
   ;; (move stdscr 1 0)
   ;; (refresh stdscr)
   ;; (header #:rebuild)
   ;; (getch   stdscr)
   ;; (header #:delete)
-  (let [(shit (getmaxyx stdscr))]
-    (refresh stdscr)
-    (when (or
-            (not (= (car  past_dimensions) (car  shit)))
-            (not (= (cadr past_dimensions) (cadr shit))))
-      (main-window #:rebuild))
+  (let [(new_past_dimensions (main_window #:get-con-max-y-x))]
+    (main_window #:refresh-contain)
 
     (when (< num 50000000)
-      (main shit (1+ num)))))
+      (main
+        (if (or
+              (not (= (main_window #:get-con-max-y) (car  past_dimensions)))
+              (not (= (main_window #:get-con-max-x) (cadr past_dimensions))))
+            (main_window #:rebuild)
+          main_window)
+        new_past_dimensions
+        (1+ num)))))
 
 (endwin)
