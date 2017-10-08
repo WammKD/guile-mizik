@@ -47,9 +47,7 @@
 
     (when (< num 50000000)
       (main
-        (if (or
-              (not (= (main_window #:get-con-max-y) (car  past_dimensions)))
-              (not (= (main_window #:get-con-max-x) (cadr past_dimensions))))
+        (if (not (equal? (main_window #:get-con-max-y-x) past_dimensions))
             (main_window #:rebuild)
           main_window)
         new_past_dimensions
