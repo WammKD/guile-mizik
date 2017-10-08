@@ -45,12 +45,13 @@
   (let [(new_past_dimensions (main_window #:get-con-max-y-x))]
     (main_window #:refresh-contain)
 
-    (when (< num 50000000)
-      (main
-        (if (not (equal? (main_window #:get-con-max-y-x) past_dimensions))
-            (main_window #:rebuild)
-          main_window)
-        new_past_dimensions
-        (1+ num)))))
+    (let [(new_win (if (not (equal?
+                              (main_window #:get-con-max-y-x)
+                              past_dimensions))
+                       (main_window #:rebuild)
+                     main_window))]
+
+      (when (< num 50000000)
+        (main new_win new_past_dimensions (1+ num))))))
 
 (endwin)
