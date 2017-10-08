@@ -166,6 +166,7 @@
   (lambda (method . xs)
     (cond
      [(eq? method #:get-windows)                          windows]
+     [(eq? method #:get-con-window)             containing_window]
      [(eq? method #:get-con-max-y-x) (getmaxyx containing_window)]
      [(eq? method #:get-con-max-y)   (getmaxy  containing_window)]
      [(eq? method #:get-con-max-x)   (getmaxx  containing_window)]

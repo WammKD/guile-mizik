@@ -18,38 +18,20 @@
 ;; Initialize the MPD client
 (define client (new-mpd-client))
 
-;; (define main-window (windows::build-main-window stdscr "Blink Don't Blink"
-;;                                                 "Fuck" "Damn"))
-
-(define main-window (windows::build-main-window
-                      stdscr
-                      #f
-                      "Track"
-                      "Title"
-                      "Genre"
-                      "Artist"
-                      "Album"
-                      "Time"))
-
 (let main [(main_window     (windows::build-main-window stdscr  #f
                                                         "Track" "Title"
                                                         "Genre" "Artist"
                                                         "Album" "Time"))
            (past_dimensions                           (getmaxyx stdscr))]
-  ;; (move stdscr 1 0)
-  ;; (refresh stdscr)
-  ;; (header #:rebuild)
-  ;; (getch   stdscr)
-  ;; (header #:delete)
   (let [(new_past_dimensions (main_window #:get-con-max-y-x))]
     (main_window #:refresh-contain)
 
-    (let [(new_win (if (not (equal?
-                              (main_window #:get-con-max-y-x)
-                              past_dimensions))
-                       (main_window #:rebuild)
-                     main_window))
-          (char    (getch stdscr))]
+    (let* [(new_win (if (not (equal?
+                               (main_window #:get-con-max-y-x)
+                               past_dimensions))
+                        (main_window #:rebuild)
+                      main_window))
+           (char    (getch (new_win #:get-con-window)))]
       
 
       (when (not (equal? char #\q))
