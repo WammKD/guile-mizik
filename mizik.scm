@@ -2,7 +2,7 @@
 !#
 (use-modules (mpd)
              (ncurses curses))
-(include     "./windows.scm")
+(include     "./windows2.scm")
 
 (setlocale LC_ALL "")
 
@@ -18,48 +18,59 @@
 ;; Initialize the MPD client
 (define client (new-mpd-client))
 
-(let main [(main_window     (windows::build-main-window stdscr  #f
-                                                        "Track" "Title"
-                                                        "Genre" "Artist"
-                                                        "Album" "Time"))
-           (past_dimensions                           (getmaxyx stdscr))]
-  (let [(new_past_dimensions (main_window #:get-con-max-y-x))]
-    (main_window #:refresh-contain)
+
+
+(mpd-connect client)
+(define db (map
+             (lambda (y)
+               (map
+                 (lambda (x)
+                   (if (number? (cdr x))
+                       (cons (car x) (number->string (cdr x)))
+                     x))
+                 y))
+             (get-mpd-response (mpdDatabase::ls-info client "Born to Run"))))
+(mpd-disconnect client)
+
+
+
+(let main ([main_window     (windows::build-columned-window stdscr  0     #f
+                                                            "Track" "Title"
+                                                            "Genre" "Artist"
+                                                            "Album" "Time")]
+           [past_dimensions                               (getmaxyx stdscr)]
+           [d                                                            db])
+  (let [(new_past_dimensions (main_window #:get-max-y-x))]
+    (main_window #:refresh)
 
     (let* [(new_win (if (not (equal?
-                               (main_window #:get-con-max-y-x)
+                               (main_window #:get-max-y-x)
                                past_dimensions))
                         (main_window #:rebuild)
                       main_window))
-           (char    (getch (new_win #:get-con-window)))]
+           (char    (getch (new_win #:get-window)))]
       (cond
        [(equal? char #\a) (main (new_win
-                                  #:add-line
-                                    '((file . "Born to Run/Bruce Springsteen (Born to Run) - 01 - Thunder Road.mp3")
-                                      (Last-Modified . "2017-06-04T19:17:11Z")
-                                      (Time . "291")
-                                      (Artist . "Bruce Springsteen")
-                                      (AlbumArtist . "Bruce Springsteen")
-                                      (Title . "Thunder Road")
-                                      (Album . "Born to Run")
-                                      (Track . "1/8")
-                                      (Date . "1975")
-                                      (Genre . "Rock")
-                                      (Composer . "Bruce Springsteen")
-                                      (Disc . "1")
-                                      (MUSICBRAINZ_ARTISTID . "70248960-cb53-4ea4-943a-edb18f7d336f"))) new_past_dimensions)]
-       [(not (equal? char #\q)) (main new_win new_past_dimensions)]))))
+                                  #:add-new-line
+                                    (car d)) new_past_dimensions (cdr d))]
+       [(equal? char #\n) (main
+                            (new_win #:move-cursor #f)
+                            new_past_dimensions
+                            d)]
+       [(equal? char #\p) (main
+                            (new_win #:move-cursor #t)
+                            new_past_dimensions
+                            d)]
+       [(not (equal? char #\q)) (main new_win new_past_dimensions d)]))))
 
 (endwin)
 
 
-(mpd-connect client)
 
-(display (get-mpd-response (mpdDatabase::ls-info client "Born to Run")))
 ;; (display (get-mpd-response
 ;;            (mpdDatabase::ls-info
 ;;              client
 ;;              (cdadar (get-mpd-response (mpdDatabase::list-all client))))))
+(display db)
 (newline)
 
-(mpd-disconnect client)

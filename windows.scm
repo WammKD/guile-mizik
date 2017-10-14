@@ -112,7 +112,7 @@
                                     win
                                     (windows::build-header-bar win #f cc)
                                     '()
-                                    -1
+                                    0
                                     ratio)
                                   result)
                                 (cdr current)
@@ -143,6 +143,34 @@
                                            (append lines (list (car xs)))
                                            highlight_pos
                                            percentage)]
+       [(eq? method #:move-cursor)       (let* [(h_p- (1- highlight_pos))
+                                                (h_p+ (1+ highlight_pos))
+                                                (lens (length lines))
+                                                (pos  (if (car xs)
+                                                          (if (< h_p- 0)
+                                                              0
+                                                            h_p-)
+                                                        (if (> h_p+ lens)
+                                                            lens
+                                                          h_p+)))]
+                                           (when (not (= highlight_pos 0))
+                                             (chgat win      -1
+                                                    A_NORMAL 0
+                                                    #:x      0
+                                                    #:y      highlight_pos))
+
+                                           (when (> pos 0)
+                                             (chgat win -1 A_REVERSE 0
+                                                    #:x 0  #:y       pos)
+                                             (refresh win))
+
+                                           (container
+                                             containing_win
+                                             win
+                                             header_bar
+                                             lines
+                                             pos
+                                             percentage))]
        [(eq? method #:rebuild)           (let* [(cw_len   (getmaxx
                                                             containing_win))
                                                 (offset   (car  xs))
@@ -222,6 +250,12 @@
                                                        (caar elements))
                                                      (cdar elements)
                                                    (loop (cdr elements)))))))
+                                         windows))]
+     [(eq? method #:move-cursor)     (windows::build-main-window
+                                       containing_window
+                                       (map
+                                         (lambda (window)
+                                           (window #:move-cursor (car xs)))
                                          windows))]
      [(eq? method #:rebuild)         (windows::build-main-window
                                        containing_window
