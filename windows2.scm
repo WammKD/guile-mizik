@@ -106,7 +106,30 @@
                                                 ((if (car xs)
                                                      1-
                                                    1+) view_end))]
-         [(eq? method #:rebuild)              (let ([win_h (getmaxy window)])
+         [(eq? method #:rebuild)              (let* ([win_h (getmaxy window)]
+                                                     [half  (inexact->exact
+                                                              (floor
+                                                                (/
+                                                                  (1- win_h)
+                                                                  2.0)))]
+                                                     [new_p (+
+                                                              (cadddr xs)
+                                                              (1- view_beg))]
+                                                     [new_b (if (< (-
+                                                                     new_p
+                                                                     half) 1)
+                                                                1
+                                                              (- new_p half))]
+                                                     [pos_e (+
+                                                              new_b
+                                                              (1- win_h))]
+                                                     [pos_b (if (>
+                                                                  pos_e
+                                                                  lines_len)
+                                                                (-
+                                                                  lines_len
+                                                                  (1- win_h))
+                                                              new_b)])
                                                 (column
                                                   lines
                                                   (car xs)
@@ -116,12 +139,14 @@
                                                   (caddr xs)
                                                   (if (>= win_h lines_len)
                                                       1
-                                                    view_beg)
+                                                    pos_b)
                                                   (if (>= win_h lines_len)
                                                       lines_len
-                                                    (+
-                                                      (1- view_beg)
-                                                      win_h))))]))))
+                                                    (if (>
+                                                          pos_e
+                                                          lines_len)
+                                                        lines_len
+                                                      pos_e))))]))))
 
   (define* (build-columns rebuild? #:optional)
     (let ([window_width  (getmaxx window)]
@@ -140,7 +165,8 @@
                                ((car current) #:rebuild
                                                 off_set
                                                 (- window_width off_set)
-                                                window_width)
+                                                window_width
+                                                highlight_pos)
                              (column
                                (list (car current))
                                off_set
@@ -150,7 +176,7 @@
                                1)) result))
           (let* ([cc  (car current)]
                  [col (if rebuild?
-                          (cc #:rebuild off_set #f window_width)
+                          (cc #:rebuild off_set #f window_width highlight_pos)
                         (column
                           (list cc)
                           off_set
@@ -225,7 +251,9 @@
                                                       (1- lines_len)
                                                       highlight_pos))
                                                   (= end lines_len))
-                                                (= beg highlight_pos))
+                                                (and
+                                                  (= 1 beg)
+                                                  (= 1 highlight_pos)))
                                               (= new_pos -1))
                                             (windows::build-columned-window
                                               window
@@ -255,9 +283,35 @@
                                                   (cdar elements)
                                                 (loop (cdr elements)))))))
                                       columns))]
-     [(eq? method #:rebuild)      (windows::build-columned-window
-                                    window
-                                    (if (< highlight_pos (getmaxy window))
-                                        highlight_pos
-                                      (1- (getmaxy window)))
-                                    (build-columns #t))])))
+     [(eq? method #:rebuild)      (let* ([new_cols   (build-columns #t)]
+                                         [new_beg    ((car new_cols)
+                                                       #:get-view-beg-pos)]
+                                         [orig_beg   ((car columns)
+                                                       #:get-view-beg-pos)]
+                                         [last_pos   (+
+                                                       orig_beg
+                                                       highlight_pos)]
+                                         [win_height (getmaxy window)]
+                                         [half       (inexact->exact
+                                                       (floor
+                                                         (/
+                                                           (1- win_height)
+                                                           2.0)))])
+                                    (windows::build-columned-window
+                                      window
+                                      (if (< highlight_pos win_height)
+                                          (-
+                                            (+ orig_beg highlight_pos)
+                                            new_beg)
+                                        (if (< (-
+                                                 (length
+                                                   ((car new_cols)
+                                                     #:get-lines))
+                                                 last_pos) half)
+                                            (-
+                                              (1- win_height)
+                                              (- (length
+                                                   ((car new_cols)
+                                                     #:get-lines)) last_pos))
+                                          (1+ half)))
+                                      new_cols))])))
