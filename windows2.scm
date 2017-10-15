@@ -62,7 +62,8 @@
 
                              (loop (cdr lst) (cons
                                                format
-                                               result) (1+ index))))))])
+                                               result) (1+ index))))))]
+          [lines_len (length lines)])
       (lambda (method . xs)
         (cond
          [(eq? method #:get-view-beg-pos)            view_beg]
@@ -87,7 +88,7 @@
                                                   window_length
                                                   view_beg
                                                   (if (>
-                                                        (1+ (length lines))
+                                                        (1+ lines_len)
                                                         (getmaxy window))
                                                       view_end
                                                     (1+ view_end))
@@ -105,15 +106,22 @@
                                                 ((if (car xs)
                                                      1-
                                                    1+) view_end))]
-         [(eq? method #:rebuild)              (column
-                                                lines
-                                                (car xs)
-                                                (if (cadr xs)
-                                                    (cadr xs)
-                                                  percentage)
-                                                (caddr xs)
-                                                view_beg
-                                                view_end)]))))
+         [(eq? method #:rebuild)              (let ([win_h (getmaxy window)])
+                                                (column
+                                                  lines
+                                                  (car xs)
+                                                  (if (cadr xs)
+                                                      (cadr xs)
+                                                    percentage)
+                                                  (caddr xs)
+                                                  (if (>= win_h lines_len)
+                                                      1
+                                                    view_beg)
+                                                  (if (>= win_h lines_len)
+                                                      lines_len
+                                                    (+
+                                                      (1- view_beg)
+                                                      win_h))))]))))
 
   (define* (build-columns rebuild? #:optional)
     (let ([window_width  (getmaxx window)]
@@ -249,5 +257,7 @@
                                       columns))]
      [(eq? method #:rebuild)      (windows::build-columned-window
                                     window
-                                    highlight_pos
+                                    (if (< highlight_pos (getmaxy window))
+                                        highlight_pos
+                                      (1- (getmaxy window)))
                                     (build-columns #t))])))
