@@ -75,11 +75,16 @@
          [(eq? method #:calc-new-line)          calc-new-line]
          [(eq? method #:add-new-line)         (let* ([c_xs     (car xs)]
                                                      [new_line (calc-new-line
-                                                                 c_xs)])
-                                                (addstr
-                                                  window new_line
-                                                  #:y    (length new_lines)
-                                                  #:x    offset)
+                                                                 c_xs)]
+                                                     [w_height (getmaxy
+                                                                 window)])
+                                                (when (<=
+                                                        (1+ lines_len)
+                                                        w_height)
+                                                  (addstr
+                                                    window new_line
+                                                    #:y    (length new_lines)
+                                                    #:x    offset))
 
                                                 (column
                                                   (append lines (list c_xs))
@@ -89,7 +94,7 @@
                                                   view_beg
                                                   (if (>
                                                         (1+ lines_len)
-                                                        (getmaxy window))
+                                                        w_height)
                                                       view_end
                                                     (1+ view_end))
                                                   (append
