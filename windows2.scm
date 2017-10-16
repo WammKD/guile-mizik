@@ -100,6 +100,22 @@
                                                   (append
                                                     new_lines
                                                     (list new_line))))]
+         [(eq? method #:insert-new-line)      (column
+                                                (append
+                                                  (cons
+                                                    (car lines)
+                                                    (: lines 1 (cadr xs)))
+                                                  (list (car xs))
+                                                  (: lines (cadr xs)))
+                                                offset
+                                                percentage
+                                                window_length
+                                                view_beg
+                                                (if (>
+                                                      (1+ lines_len)
+                                                      (getmaxy window))
+                                                    view_end
+                                                  (1+ view_end)))]
          [(eq? method #:shift-page)           (column
                                                 lines
                                                 offset
@@ -287,6 +303,25 @@
                                                     (caar elements))
                                                   (cdar elements)
                                                 (loop (cdr elements)))))))
+                                      columns))]
+     [(eq? method
+           #:insert-new-line)     (windows::build-columned-window
+                                    window
+                                    highlight_pos
+                                    (map
+                                      (lambda (col)
+                                        (col
+                                          #:insert-new-line
+                                          (let loop [(elements (car xs))]
+                                            (if (null? elements)
+                                                ""
+                                              (if (eq?
+                                                    (string->symbol
+                                                      (col #:get-header))
+                                                    (caar elements))
+                                                  (cdar elements)
+                                                (loop (cdr elements)))))
+                                          (cadr xs)))
                                       columns))]
      [(eq? method #:rebuild)      (let* ([new_cols   (build-columns #t)]
                                          [new_beg    ((car new_cols)

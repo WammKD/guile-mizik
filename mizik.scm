@@ -52,7 +52,10 @@
       (cond
        [(equal? char #\a) (main (new_win
                                   #:add-new-line
-                                    (car d)) new_past_dimensions (cdr d))]
+                                    (car d))   new_past_dimensions (cdr d))]
+       [(equal? char #\i) (main (new_win
+                                  #:insert-new-line
+                                    (car d) 3) new_past_dimensions (cdr d))]
        [(equal? char #\n) (main
                             (new_win #:move-cursor #f)
                             new_past_dimensions
