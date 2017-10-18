@@ -165,9 +165,7 @@
        [(eq? method #:get-max-y)    (getmaxy  window)]
        [(eq? method #:get-max-x)    (getmaxx  window)]
        [(eq? method #:refresh)      (refresh  window)]
-       [(eq? method #:move-cursor)  (let ([newPos ((if (car xs) - +)
-                                                    highlightPos
-                                                    (cadr xs))])
+       [(eq? method #:move-cursor)  (let ([newPos (+ highlightPos (car xs))])
                                       (when (not (= highlightPos 0))
                                         (chgat window   -1
                                                A_NORMAL 0

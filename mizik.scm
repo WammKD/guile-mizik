@@ -57,11 +57,11 @@
                                   #:insert-new-line
                                     (car d) 3) new_past_dimensions (cdr d))]
        [(equal? char #\n) (main
-                            (new_win #:move-cursor #f 1)
+                            (new_win #:move-cursor 1)
                             new_past_dimensions
                             d)]
        [(equal? char #\p) (main
-                            (new_win #:move-cursor #t 1)
+                            (new_win #:move-cursor -1)
                             new_past_dimensions
                             d)]
        [(not (equal? char #\q)) (main new_win new_past_dimensions d)]))))
