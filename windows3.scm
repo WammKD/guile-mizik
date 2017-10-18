@@ -5,6 +5,10 @@
 
 (define (2+ num)
   (+ num 2))
+(define (between? num1 num2 num3)
+  (let ([lesser  (if (< num1 num3) num1 num3)]
+        [greater (if (> num1 num3) num1 num3)])
+    (and (> num2 lesser) (< num2 greater))))
 (define* (: receivedAtom sI #:optional [eI (length receivedAtom)])
   (let* ([loRA       (length receivedAtom)]
          [startIndex (if (negative? sI)
@@ -165,35 +169,40 @@
        [(eq? method #:get-max-y)    (getmaxy  window)]
        [(eq? method #:get-max-x)    (getmaxx  window)]
        [(eq? method #:refresh)      (refresh  window)]
-       [(eq? method #:move-cursor)  (let ([newPos (+ highlightPos (car xs))])
-                                      (when (not (= highlightPos 0))
-                                        (chgat window   -1
-                                               A_NORMAL 0
-                                               #:x      0
-                                               #:y      highlightPos))
+       [(eq? method #:move-cursor)
+             (let ([newPos  (+ highlightPos (car xs))]
+                   [winLen           (getmaxy window)]
+                   [listLen  (1+ (length masterList))])
+               (when (not (= highlightPos 0))
+                 (chgat window -1 A_NORMAL 0 #:x 0 #:y highlightPos))
 
-                                      (columned-window
-                                        window
-                                        masterList
-                                        allColumns
-                                        (cond
-                                         [(and
-                                            (negative? newPos)
-                                            (zero? highlightPos)) 0]
-                                         [(< newPos 1)            1]
-                                         [(<
-                                            (length masterList)
-                                            newPos)               (length
-                                                                    masterList)]
-                                         [else                    newPos])
-                                        begPos
-                                        endPos))]
+               (cond
+                [(and
+                   (between? 0 newPos (if (> listLen winLen) winLen listLen))
+                   (= begPos 1)
+                   (= endPos listLen))
+                      (columned-window
+                        window
+                        masterList
+                        allColumns
+                        (if (and (negative? newPos) (zero? highlightPos))
+                            0
+                          (if (< newPos 1) 1 (if (< (1- listLen) newPos)
+                                                 (1- listLen)
+                                               newPos)))
+                        begPos
+                        endPos)]
+                [else (display "Purposeful Error")]))]
        [(eq? method #:add-new-line) (columned-window
                                       window
                                       (append masterList (list (car xs)))
-                                      (map
-                                        (lambda (col)
-                                          (col #:add-new-line (car xs)))
+                                      (if (>
+                                            (getmaxy window)
+                                            (1+ (length masterList)))
+                                          (map
+                                            (lambda (col)
+                                              (col #:add-new-line (car xs)))
+                                            allColumns)
                                         allColumns)
                                       highlightPos
                                       begPos
