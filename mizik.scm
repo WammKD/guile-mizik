@@ -2,7 +2,7 @@
 !#
 (use-modules (mpd)
              (ncurses curses))
-(include     "./windows2.scm")
+(include     "./windows3.scm")
 
 (setlocale LC_ALL "")
 
@@ -34,7 +34,7 @@
 
 
 
-(let main ([main_window     (windows::build-columned-window stdscr  0     #f
+(let main ([main_window     (windows::build-columned-window stdscr
                                                             "Track" "Title"
                                                             "Genre" "Artist"
                                                             "Album" "Time")]
@@ -57,11 +57,11 @@
                                   #:insert-new-line
                                     (car d) 3) new_past_dimensions (cdr d))]
        [(equal? char #\n) (main
-                            (new_win #:move-cursor #f)
+                            (new_win #:move-cursor #f 1)
                             new_past_dimensions
                             d)]
        [(equal? char #\p) (main
-                            (new_win #:move-cursor #t)
+                            (new_win #:move-cursor #t 1)
                             new_past_dimensions
                             d)]
        [(not (equal? char #\q)) (main new_win new_past_dimensions d)]))))
