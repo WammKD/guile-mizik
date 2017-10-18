@@ -181,13 +181,13 @@
                                         (cond
                                          [(and
                                             (negative? newPos)
-                                            (zero? highlightPos))  0]
-                                         [(< newPos 1)             1]
-                                         [(=
-                                            (1+
-                                              (length masterList))
-                                            newPos)                highlightPos]
-                                         [else                     newPos])
+                                            (zero? highlightPos)) 0]
+                                         [(< newPos 1)            1]
+                                         [(<
+                                            (length masterList)
+                                            newPos)               (length
+                                                                    masterList)]
+                                         [else                    newPos])
                                         begPos
                                         endPos))]
        [(eq? method #:add-new-line) (columned-window
