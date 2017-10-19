@@ -153,7 +153,8 @@
                                              (cons header (car xs))
                                              offset
                                              percentage)]
-         [(eq? method #:rebuild-with-size) (check-height (length lines))
+         [(eq? method #:rebuild-with-size) (check-height
+                                             (length (car xs)))
 
                                            (column
                                              window
@@ -245,10 +246,15 @@
                                       window
                                       masterList
                                       (build-columns
-                                        window masterList allColumns)
+                                        window
+                                        (: masterList begPos (+ 
+                                                               begPos
+                                                               (getmaxy
+                                                                 window)))
+                                        allColumns)
                                       highlightPos
-                                      begPos
-                                      endPos)])))
+                                      begPos  ; This is bad; change
+                                      (+ begPos (getmaxy window)))])))
 
 
 
