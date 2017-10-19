@@ -177,15 +177,15 @@
        [(eq? method #:get-max-x)    (getmaxx  window)]
        [(eq? method #:refresh)      (refresh  window)]
        [(eq? method #:move-cursor)
-             (let ([newPos         (+ highlightPos (car xs))]
-                   [winLen                  (getmaxy window)]
-                   [listLen         (1+ (length masterList))]
-                   [lastVisibleLine      (- endPos begPos 1)])
+             (let ([newPos          (+ highlightPos (car xs))]
+                   [winLen                   (getmaxy window)]
+                   [listLen          (1+ (length masterList))]
+                   [lastVisibleLine       (- endPos begPos 1)])
                (when (not (= highlightPos 0))
                  (chgat window -1 A_NORMAL 0 #:x 0 #:y highlightPos))
 
                (cond
-                [(between? 0 newPos (- endPos begPos))
+                [(between? 0 newPos (1+ lastVisibleLine))
                       (columned-window
                         window
                         masterList
@@ -199,8 +199,8 @@
                         endPos)]
                 [(or
                    (and
-                     (> newPos (- endPos begPos 1))
-                     (= highlightPos (- endPos begPos 1))
+                     (> newPos lastVisibleLine)
+                     (= highlightPos lastVisibleLine)
                      (= endPos listLen))
                    (and
                      (< newPos               1)
@@ -211,7 +211,7 @@
                      (= highlightPos               0)))
                       (columned-window window       masterList allColumns
                                        highlightPos begPos     endPos)]
-                [(or (< newPos 1) (> newPos (- endPos begPos 1)))
+                [(or (< newPos 1) (> newPos lastVisibleLine))
                       (let ([newBegPos ((if (< newPos 1) 1- 1+) begPos)]
                             [newEndPos ((if (< newPos 1) 1- 1+) endPos)])
                         (columned-window
