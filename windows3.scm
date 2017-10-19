@@ -5,6 +5,8 @@
 
 (define (2+ num)
   (+ num 2))
+(define (2- num)
+  (- num 2))
 (define (between? num1 num2 num3)
   (let ([lesser  (if (< num1 num3) num1 num3)]
         [greater (if (> num1 num3) num1 num3)])
@@ -40,7 +42,7 @@
                  [offset                  0])
         (if (null? (cdr current))
             (reverse (cons (if elements
-                               ((car current) #:rebuild
+                               ((car current) #:rebuild-with-size
                                                 elements
                                                 offset
                                                 (- windowWidth offset))
@@ -51,7 +53,7 @@
                                (- windowWidth offset))) result))
           (let* ([cc  (car current)]
                  [col (if elements
-                          (cc #:rebuild elements offset #f)
+                          (cc #:rebuild-with-size elements offset #f)
                         (column
                           wind
                           (list cc)
@@ -96,7 +98,7 @@
          [(>
             lineLength
             (1- columnWidth)) (string-append
-                                (substring line 0 (- columnWidth 2))
+                                (substring line 0 (2- columnWidth))
                                 ELLIPSIS
                                 " ")]
          [else                (string-concatenate
@@ -146,7 +148,12 @@
                                                  (list (format-and-add
                                                          refLine
                                                          (1- newLen))))))]
-         [(eq? method #:rebuild)           (check-height (length lines))
+         [(eq? method #:rebuild)           (column
+                                             window
+                                             (cons header (car xs))
+                                             offset
+                                             percentage)]
+         [(eq? method #:rebuild-with-size) (check-height (length lines))
 
                                            (column
                                              window
@@ -170,17 +177,15 @@
        [(eq? method #:get-max-x)    (getmaxx  window)]
        [(eq? method #:refresh)      (refresh  window)]
        [(eq? method #:move-cursor)
-             (let ([newPos  (+ highlightPos (car xs))]
-                   [winLen           (getmaxy window)]
-                   [listLen  (1+ (length masterList))])
+             (let ([newPos         (+ highlightPos (car xs))]
+                   [winLen                  (getmaxy window)]
+                   [listLen         (1+ (length masterList))]
+                   [lastVisibleLine      (- endPos begPos 1)])
                (when (not (= highlightPos 0))
                  (chgat window -1 A_NORMAL 0 #:x 0 #:y highlightPos))
 
                (cond
-                [(and
-                   (between? 0 newPos (if (> listLen winLen) winLen listLen))
-                   (= begPos 0)
-                   (= endPos listLen))
+                [(between? 0 newPos (- endPos begPos))
                       (columned-window
                         window
                         masterList
@@ -192,21 +197,50 @@
                                                newPos)))
                         begPos
                         endPos)]
+                [(or
+                   (and
+                     (> newPos (- endPos begPos 1))
+                     (= highlightPos (- endPos begPos 1))
+                     (= endPos listLen))
+                   (and
+                     (< newPos               1)
+                     (= highlightPos               1)
+                     (= begPos 0))
+                   (and
+                     (< newPos               0)
+                     (= highlightPos               0)))
+                      (columned-window window       masterList allColumns
+                                       highlightPos begPos     endPos)]
+                [(or (< newPos 1) (> newPos (- endPos begPos 1)))
+                      (let ([newBegPos ((if (< newPos 1) 1- 1+) begPos)]
+                            [newEndPos ((if (< newPos 1) 1- 1+) endPos)])
+                        (columned-window
+                          window
+                          masterList
+                          (map
+                            (lambda (col)
+                              (col #:rebuild
+                                     (: masterList newBegPos newEndPos)))
+                            allColumns)
+                          highlightPos
+                          newBegPos
+                          newEndPos))]
                 [else (display "Purposeful Error")]))]
-       [(eq? method #:add-new-line) (columned-window
-                                      window
-                                      (append masterList (list (car xs)))
-                                      (if (>
-                                            (getmaxy window)
-                                            (1+ (length masterList)))
-                                          (map
-                                            (lambda (col)
-                                              (col #:add-new-line (car xs)))
-                                            allColumns)
-                                        allColumns)
-                                      highlightPos
-                                      begPos
-                                      (1+ endPos))]
+       [(eq? method #:add-new-line) (let ([l? (>
+                                                (getmaxy window)
+                                                (1+ (length masterList)))])
+                                      (columned-window
+                                        window
+                                        (append masterList (list (car xs)))
+                                        (if l?
+                                            (map
+                                              (lambda (col)
+                                                (col #:add-new-line (car xs)))
+                                              allColumns)
+                                          allColumns)
+                                        highlightPos
+                                        begPos
+                                        (if l? (1+ endPos) endPos)))]
        [(eq? method #:rebuild)      (columned-window
                                       window
                                       masterList
