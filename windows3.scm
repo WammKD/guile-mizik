@@ -179,7 +179,7 @@
                (cond
                 [(and
                    (between? 0 newPos (if (> listLen winLen) winLen listLen))
-                   (= begPos 1)
+                   (= begPos 0)
                    (= endPos listLen))
                       (columned-window
                         window
@@ -218,4 +218,4 @@
 
 
 
-  (columned-window win '() (build-columns win #f captions) 0 1 1))
+  (columned-window win '() (build-columns win #f captions) 0 0 1))
