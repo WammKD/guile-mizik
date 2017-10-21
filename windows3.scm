@@ -121,13 +121,13 @@
           [linesLen (1+ (length body))])
       (lambda (method . xs)
         (cond
-         [(eq? method #:get-width)                             columnWidth]
-         [(eq? method #:get-tag)                   (string->symbol header)]
-         [(eq? method #:get-header)                                 header]
-         [(eq? method #:get-formed-header)                  (car newLines)]
-         [(eq? method #:get-lines)                             (cdr lines)]
-         [(eq? method #:get-refined)                                  body]
-         [(eq? method #:calc-new-line)                       calc-new-line]
+         [(eq? method #:get-width)                            columnWidth]
+         [(eq? method #:get-tag)                  (string->symbol header)]
+         [(eq? method #:get-header)                                header]
+         [(eq? method #:get-formed-header)                 (car newLines)]
+         [(eq? method #:get-lines)                            (cdr lines)]
+         [(eq? method #:get-refined)                                 body]
+         [(eq? method #:calc-new-line)                      calc-new-line]
          [(eq? method #:add-new-line)      (let* ([newLen  (1+
                                                              (length lines))]
                                                   [line             (car xs)]
