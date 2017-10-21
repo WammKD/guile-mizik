@@ -76,4 +76,3 @@
 ;;              (cdadar (get-mpd-response (mpdDatabase::list-all client))))))
 (display db)
 (newline)
-

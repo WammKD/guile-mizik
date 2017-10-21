@@ -168,7 +168,9 @@
   (define (columned-window window       masterList allColumns
                            highlightPos begPos     endPos)
     (chgat window -1 A_REVERSE 0 #:x 0 #:y 0)
-    (chgat window -1 A_REVERSE 0 #:x 0 #:y highlightPos)
+    (if (>= highlightPos (getmaxy window))
+        (error highlightPos)
+      (chgat window -1 A_REVERSE 0 #:x 0 #:y highlightPos))
 
     (lambda (method . xs)
       (cond
@@ -178,43 +180,49 @@
        [(eq? method #:get-max-x)    (getmaxx  window)]
        [(eq? method #:refresh)      (refresh  window)]
        [(eq? method #:move-cursor)
-             (let ([newPos          (+ highlightPos (car xs))]
-                   [winLen                   (getmaxy window)]
-                   [listLen          (1+ (length masterList))]
-                   [lastVisibleLine       (- endPos begPos 1)])
+             (let ([newPos               (+ highlightPos (car xs))]
+                   [winLen                        (getmaxy window)]
+                   [listLen                    (length masterList)]
+                   [lastVisibleLineOfWin         (- endPos begPos)])
                (when (not (= highlightPos 0))
                  (chgat window -1 A_NORMAL 0 #:x 0 #:y highlightPos))
 
                (cond
-                [(between? 0 newPos (1+ lastVisibleLine))
+                [(between? 0 newPos (1+ lastVisibleLineOfWin))
                       (columned-window
                         window
                         masterList
                         allColumns
                         (if (and (negative? newPos) (zero? highlightPos))
                             0
-                          (if (< newPos 1) 1 (if (< (1- listLen) newPos)
+                          (if (< newPos 1) 1 (if (< listLen newPos)
                                                  (1- listLen)
                                                newPos)))
                         begPos
                         endPos)]
                 [(or
                    (and
-                     (> newPos lastVisibleLine)
-                     (= highlightPos lastVisibleLine)
+                     (> newPos lastVisibleLineOfWin)
+                     (= highlightPos lastVisibleLineOfWin)
                      (= endPos listLen))
                    (and
-                     (< newPos               1)
-                     (= highlightPos               1)
+                     (< newPos                    1)
+                     (= highlightPos                    1)
                      (= begPos 0))
                    (and
-                     (< newPos               0)
-                     (= highlightPos               0)))
+                     (< newPos                    0)
+                     (= highlightPos                    0)))
                       (columned-window window       masterList allColumns
                                        highlightPos begPos     endPos)]
-                [(or (< newPos 1) (> newPos lastVisibleLine))
+                [(or (< newPos 1) (> newPos lastVisibleLineOfWin))
                       (let ([newBegPos ((if (< newPos 1) 1- 1+) begPos)]
-                            [newEndPos ((if (< newPos 1) 1- 1+) endPos)])
+                            [newEndPos (if (and
+                                             (< newPos highlightPos)
+                                             (not (=
+                                                    (- endPos begPos)
+                                                    (1- winLen))))
+                                           endPos
+                                         ((if (< newPos 1) 1- 1+) endPos))])
                         (columned-window
                           window
                           masterList
@@ -242,20 +250,41 @@
                                         highlightPos
                                         begPos
                                         (if l? (1+ endPos) endPos)))]
-       [(eq? method #:rebuild)      (columned-window
-                                      window
-                                      masterList
-                                      (build-columns
-                                        window
-                                        (: masterList begPos (+ 
-                                                               begPos
-                                                               (getmaxy
-                                                                 window)))
-                                        allColumns)
-                                      highlightPos
-                                      begPos  ; This is bad; change
-                                      (+ begPos (getmaxy window)))])))
+       [(eq? method #:rebuild)
+             (let* ([listLen                  (length masterList)]
+                    [remaining                 (- listLen begPos)]
+                    [winHeight                   (getmaxy window)]
+                    [linesHeight                   (1- winHeight)]
+                    [currSongIndex   (1- (+ begPos highlightPos))]
+                    [winSmaller         (> remaining linesHeight)]
+                    [winHalf       (inexact->exact
+                                     (round (/ linesHeight 2.0)))]
+                    [newBegPos     (if (> (- listLen begPos) linesHeight)
+                                       (cond
+                                        [(< (- currSongIndex winHalf) 0)
+                                              0]
+                                        [(<= (-
+                                               listLen
+                                               currSongIndex) winHalf)
+                                              (- listLen linesHeight)]
+                                        [else (- currSongIndex winHalf)])
+                                     begPos)]
+                    [newEndPos  (if winSmaller
+                                    (+ newBegPos linesHeight)
+                                  listLen)])
+               (columned-window
+                 window
+                 masterList
+                 (build-columns
+                   window
+                   (: masterList newBegPos newEndPos)
+                   allColumns)
+                 (if (> (- listLen begPos) linesHeight)
+                     (- (1+ currSongIndex) newBegPos)
+                   highlightPos)
+                 newBegPos
+                 newEndPos))])))
 
 
 
-  (columned-window win '() (build-columns win #f captions) 0 0 1))
+  (columned-window win '() (build-columns win #f captions) 0 0 0))
