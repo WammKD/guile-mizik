@@ -263,15 +263,13 @@
                                        (cond
                                         [(< (- currSongIndex winHalf) 0)
                                               0]
-                                        [(<= (-
-                                               listLen
-                                               currSongIndex) winHalf)
+                                        [(<= (- listLen currSongIndex) winHalf)
                                               (- listLen linesHeight)]
                                         [else (- currSongIndex winHalf)])
                                      begPos)]
-                    [newEndPos  (if winSmaller
-                                    (+ newBegPos linesHeight)
-                                  listLen)])
+                    [newEndPos     (if winSmaller 
+                                       (+ newBegPos linesHeight)
+                                     listLen)])
                (columned-window
                  window
                  masterList
