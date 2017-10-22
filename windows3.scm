@@ -69,7 +69,7 @@
                                                     [formatted    #f])
     (define header      (car lines))
     (define body        (if refinedLines
-                            (cdr refinedLines)
+                            refinedLines
                           (map
                             (lambda (line)
                               (assoc-ref line (string->symbol header)))
@@ -118,7 +118,7 @@
                           (addstr window newLine #:y 0 #:x offset)
                           newLine)
                         (map format-and-add body (iota (length body) 1))))]
-          [linesLen (1+ (length body))])
+          [linesLen (length lines)])
       (lambda (method . xs)
         (cond
          [(eq? method #:get-width)                            columnWidth]
@@ -128,9 +128,12 @@
          [(eq? method #:get-lines)                            (cdr lines)]
          [(eq? method #:get-refined)                                 body]
          [(eq? method #:calc-new-line)                      calc-new-line]
-         [(eq? method #:add-new-line)      (let* ([newLen  (1+
-                                                             (length lines))]
-                                                  [line             (car xs)]
+         [(eq? method #:add-new-line)      (let* ([newLen  (if (caddr xs)
+                                                               linesLen
+                                                             (1- linesLen))]
+                                                  [line           (car  xs)]
+                                                  [index          (cadr xs)]
+                                                  [i+1           (1+ index)]
                                                   [refLine (assoc-ref
                                                              line
                                                              (string->symbol
@@ -139,15 +142,31 @@
 
                                              (column
                                                window
-                                               (append lines (list line))
+                                               (append
+                                                 (: lines 0 i+1)
+                                                 (list line)
+                                                 (: lines i+1 newLen))
                                                offset
                                                percentage
-                                               (append body (list refLine))
                                                (append
-                                                 newLines
+                                                 (: body 0     index)
+                                                 (list refLine)
+                                                 (: body index (1- newLen)))
+                                               (append
+                                                 (: newLines 0 i+1)
                                                  (list (format-and-add
                                                          refLine
-                                                         (1- newLen))))))]
+                                                         i+1))
+                                                 (let ([sub (:
+                                                              body
+                                                              index
+                                                              (1- newLen))])
+                                                   (map
+                                                     format-and-add
+                                                     sub
+                                                     (iota
+                                                       (length sub)
+                                                       (2+ index)))))))]
          [(eq? method #:rebuild)           (column
                                              window
                                              (cons header (car xs))
@@ -235,21 +254,36 @@
                           newBegPos
                           newEndPos))]
                 [else (display "Purposeful Error")]))]
-       [(eq? method #:add-new-line) (let ([l? (>
-                                                (getmaxy window)
-                                                (1+ (length masterList)))])
+       [(eq? method #:add-new-line) (let* ([line                 (car xs)]
+                                           [masterLen (length masterList)]
+                                           [winHeight    (getmaxy window)]
+                                           [index     (if (cadr xs)
+                                                          (cadr xs)
+                                                        masterLen)]
+                                           [l?        (and
+                                                        (>= index begPos)
+                                                        (<
+                                                          (- index begPos)
+                                                          winHeight))]
+                                           [inc?      (<
+                                                        (- masterLen begPos)
+                                                        (1- winHeight))])
                                       (columned-window
                                         window
-                                        (append masterList (list (car xs)))
+                                        (append
+                                          (: masterList 0 index)
+                                          (list line)
+                                          (: masterList index))
                                         (if l?
                                             (map
                                               (lambda (col)
-                                                (col #:add-new-line (car xs)))
+                                                (col #:add-new-line
+                                                       line index inc?))
                                               allColumns)
                                           allColumns)
                                         highlightPos
                                         begPos
-                                        (if l? (1+ endPos) endPos)))]
+                                        (if inc? (1+ endPos) endPos)))]
        [(eq? method #:rebuild)
              (let* ([listLen                  (length masterList)]
                     [remaining                 (- listLen begPos)]
