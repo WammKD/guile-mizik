@@ -48,7 +48,8 @@
                                                 (- windowWidth offset))
                              (column
                                wind
-                               (list (car current))
+                               (car current)
+                               '()
                                offset
                                (- windowWidth offset))) result))
           (let* ([cc  (car current)]
@@ -56,7 +57,8 @@
                           (cc #:rebuild-with-size elements offset #f)
                         (column
                           wind
-                          (list cc)
+                          cc
+                          '()
                           offset
                           (/ (string-length cc) captionTotal)))])
             (loop
@@ -64,29 +66,29 @@
               (cdr current)
               (+ (col #:get-width) offset)))))))
 
-  (define* (column window lines offset percentage #:optional
-                                                    [refinedLines #f]
-                                                    [formatted    #f])
-    (define header      (car lines))
+  (define* (column window header lines offset percentage #:optional
+                                                           [refinedLines #f]
+                                                           [formatHeader #f]
+                                                           [formatted    #f])
     (define body        (if refinedLines
                             refinedLines
                           (map
                             (lambda (line)
                               (assoc-ref line (string->symbol header)))
-                            (cdr lines))))
+                            lines)))
     (define columnWidth (if (exact? percentage)
                             percentage
                           (inexact->exact
                             (round (* percentage (getmaxx window))))))
 
     (define (check-height newLinesLength)
-      (let ([windowLength (getmaxy window)])
-        (when (> newLinesLength windowLength)
+      (let ([linesLength (1- (getmaxy window))])
+        (when (> newLinesLength linesLength)
           (error (string-append
                    "In procedure column#:get-new-line: additional line "
                    "pushes lines length to larger value "
                    "(" (number->string newLinesLength) ") than window height "
-                   "(" (number->string windowLength)   ")")))))
+                   "(" (number->string linesLength)    ")")))))
     (define (calc-new-line l)
       (let* ([line                (if l l "")]
              [ELLIPSIS                    "…"]
@@ -111,29 +113,27 @@
 
         newLine))
 
-    (let ([newLines (if formatted
-                        formatted
-                      (cons
-                        (let ([newLine (calc-new-line header)])
-                          (addstr window newLine #:y 0 #:x offset)
-                          newLine)
-                        (map format-and-add body (iota (length body) 1))))]
+    (let ([newHeader (if formatHeader formatHeader (format-and-add header 0))]
+          [newLines  (if formatted
+                         formatted
+                       (map format-and-add body (iota (length body) 1)))]
           [linesLen (length lines)])
       (lambda (method . xs)
         (cond
          [(eq? method #:get-width)                            columnWidth]
          [(eq? method #:get-tag)                  (string->symbol header)]
          [(eq? method #:get-header)                                header]
-         [(eq? method #:get-formed-header)                 (car newLines)]
-         [(eq? method #:get-lines)                            (cdr lines)]
+         [(eq? method #:get-formed-header)                      newHeader]
+         [(eq? method #:get-lines)                                  lines]
          [(eq? method #:get-refined)                                 body]
+         [(eq? method #:get-formed-lines)                        newLines]
          [(eq? method #:calc-new-line)                      calc-new-line]
-         [(eq? method #:add-new-line)      (let* ([newLen  (if (caddr xs)
-                                                               linesLen
-                                                             (1- linesLen))]
-                                                  [line           (car  xs)]
-                                                  [index          (cadr xs)]
-                                                  [i+1           (1+ index)]
+         [(eq? method #:add-new-line)      (let* ([newLen   (if (caddr xs)
+                                                                linesLen
+                                                              (1- linesLen))]
+                                                  [line       (car  xs)]
+                                                  [index      (cadr xs)]
+                                                  [i+1       (1+ index)]
                                                   [refLine (assoc-ref
                                                              line
                                                              (string->symbol
@@ -142,25 +142,27 @@
 
                                              (column
                                                window
+                                               header
                                                (append
-                                                 (: lines 0 i+1)
+                                                 (: lines 0     index)
                                                  (list line)
-                                                 (: lines i+1 newLen))
+                                                 (: lines index newLen))
                                                offset
                                                percentage
                                                (append
                                                  (: body 0     index)
                                                  (list refLine)
-                                                 (: body index (1- newLen)))
+                                                 (: body index newLen))
+                                               newHeader
                                                (append
-                                                 (: newLines 0 i+1)
+                                                 (: newLines 0 index)
                                                  (list (format-and-add
                                                          refLine
-                                                         i+1))
+                                                         (1+ index)))
                                                  (let ([sub (:
                                                               body
                                                               index
-                                                              (1- newLen))])
+                                                              newLen)])
                                                    (map
                                                      format-and-add
                                                      sub
@@ -169,7 +171,8 @@
                                                        (2+ index)))))))]
          [(eq? method #:rebuild)           (column
                                              window
-                                             (cons header (car xs))
+                                             header
+                                             (car xs)
                                              offset
                                              percentage)]
          [(eq? method #:rebuild-with-size) (check-height
@@ -177,7 +180,8 @@
 
                                            (column
                                              window
-                                             (cons header (car xs))
+                                             header
+                                             (car  xs)
                                              (cadr xs)
                                              (let ([perc (caddr xs)])
                                                (if perc
