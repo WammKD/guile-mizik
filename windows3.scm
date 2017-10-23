@@ -279,11 +279,12 @@
                                           (list line)
                                           (: masterList index))
                                         (if l?
-                                            (map
-                                              (lambda (col)
-                                                (col #:add-new-line
-                                                       line index inc?))
-                                              allColumns)
+                                            (let ([modPos (- index begPos)])
+                                              (map
+                                                (lambda (col)
+                                                  (col #:add-new-line
+                                                         line modPos inc?))
+                                                allColumns))
                                           allColumns)
                                         highlightPos
                                         begPos
