@@ -128,12 +128,12 @@
          [(eq? method #:get-refined)                                 body]
          [(eq? method #:get-formed-lines)                        newLines]
          [(eq? method #:calc-new-line)                      calc-new-line]
-         [(eq? method #:add-new-line)      (let* ([newLen   (if (caddr xs)
-                                                                linesLen
-                                                              (1- linesLen))]
-                                                  [line       (car  xs)]
+         [(eq? method #:add-new-line)      (let* ([line       (car  xs)]
                                                   [index      (cadr xs)]
                                                   [i+1       (1+ index)]
+                                                  [newLen   (if (caddr xs)
+                                                                linesLen
+                                                              (1- linesLen))]
                                                   [refLine (assoc-ref
                                                              line
                                                              (string->symbol
