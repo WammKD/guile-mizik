@@ -241,15 +241,48 @@
                      (= highlightPos                    0)))
                       (columned-window window       masterList allColumns
                                        highlightPos begPos     endPos)]
+                [(and (< newPos 1) (< (+ begPos (car xs)) 0))
+                      (columned-window
+                        window
+                        masterList
+                        (map
+                          (lambda (col)
+                            (col #:rebuild (: masterList 0 (1- winLen))))
+                          allColumns)
+                        1
+                        0
+                        (if (< (- listLen begPos) (1- winLen))
+                            listLen
+                          (1- winLen)))]
+                [(and
+                   (> newPos lastVisibleLineOfWin)
+                   (> (+ begPos highlightPos (car xs)) listLen))
+                      (let ([newBegPos (if (< (- listLen begPos) (1- winLen))
+                                           begPos
+                                         (- listLen (1- winLen)))]
+                            [newEndPos (if (< (- listLen begPos) (1- winLen))
+                                           listLen
+                                         (2+ winLen))])
+                        (columned-window
+                          window
+                          masterList
+                          (map
+                            (lambda (col)
+                              (col #:rebuild
+                                     (: masterList newBegPos newEndPos)))
+                            allColumns)
+                          (- newEndPos newBegPos)
+                          newBegPos
+                          newEndPos))]
                 [(or (< newPos 1) (> newPos lastVisibleLineOfWin))
-                      (let ([newBegPos ((if (< newPos 1) 1- 1+) begPos)]
+                      (let ([newBegPos (+ begPos (car xs))]
                             [newEndPos (if (and
                                              (< newPos highlightPos)
                                              (not (=
                                                     (- endPos begPos)
                                                     (1- winLen))))
                                            endPos
-                                         ((if (< newPos 1) 1- 1+) endPos))])
+                                         (+ endPos (car xs)))])
                         (columned-window
                           window
                           masterList

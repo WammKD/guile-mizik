@@ -50,20 +50,38 @@
                       main_window))
            (char    (getch (new_win #:get-window)))]
       (cond
-       [(equal? char #\a) (main (new_win
-                                  #:add-new-line
-                                    (car d) #f) new_past_dimensions (cdr d))]
-       [(equal? char #\i) (main (new_win
-                                  #:add-new-line
-                                    (car d) 3)  new_past_dimensions (cdr d))]
-       [(equal? char #\n) (main
-                            (new_win #:move-cursor 1)
-                            new_past_dimensions
-                            d)]
-       [(equal? char #\p) (main
-                            (new_win #:move-cursor -1)
-                            new_past_dimensions
-                            d)]
+       [(equal? char #\a)       (main
+                                  (new_win #:add-new-line (car d) #f)
+                                  new_past_dimensions
+                                  (cdr d))]
+       [(equal? char #\i)       (main
+                                  (new_win #:add-new-line (car d) 5)
+                                  new_past_dimensions
+                                  (cdr d))]
+       [(equal? char KEY_NPAGE) (main
+                                  (new_win #:move-cursor  10)
+                                  new_past_dimensions
+                                  d)]
+       [(equal? char #\n)       (main
+                                  (new_win #:move-cursor  3)
+                                  new_past_dimensions
+                                  d)]
+       [(equal? char KEY_DOWN)  (main
+                                  (new_win #:move-cursor  1)
+                                  new_past_dimensions
+                                  d)]
+       [(equal? char KEY_PPAGE) (main
+                                  (new_win #:move-cursor -10)
+                                  new_past_dimensions
+                                  d)]
+       [(equal? char #\p)       (main
+                                  (new_win #:move-cursor -3)
+                                  new_past_dimensions
+                                  d)]
+       [(equal? char KEY_UP)    (main
+                                  (new_win #:move-cursor -1)
+                                  new_past_dimensions
+                                  d)]
        [(not (equal? char #\q)) (main new_win new_past_dimensions d)]))))
 
 (endwin)
