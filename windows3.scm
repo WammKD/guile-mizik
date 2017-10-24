@@ -1,7 +1,6 @@
 #!/usr/local/bin/guile
 !#
-(use-modules (ncurses curses)
-             (srfi    srfi-1))
+(use-modules (srfi srfi-1))
 
 (define (2+ num)
   (+ num 2))
@@ -206,6 +205,12 @@
        [(eq? method #:get-max-y)    (getmaxy  window)]
        [(eq? method #:get-max-x)    (getmaxx  window)]
        [(eq? method #:refresh)      (refresh  window)]
+       [(eq? method #:play)         (when (> highlightPos 0)
+                                      (mpd-connect (car xs))
+                                      (mpdPlaybackControl::play
+                                        (car xs)
+                                        (+ begPos (1- highlightPos)))
+                                      (mpd-disconnect (car xs)))]
        [(eq? method #:move-cursor)
              (let ([newPos               (+ highlightPos (car xs))]
                    [winLen                        (getmaxy window)]

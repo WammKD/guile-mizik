@@ -20,69 +20,109 @@
 
 
 
-(mpd-connect client)
-(define db (map
-             (lambda (y)
-               (map
-                 (lambda (x)
-                   (if (number? (cdr x))
-                       (cons (car x) (number->string (cdr x)))
-                     x))
-                 y))
-             (get-mpd-response (mpdDatabase::ls-info client "Born to Run"))))
-(mpd-disconnect client)
+;; (mpd-connect client)
+;; (define db (map
+;;              (lambda (y)
+;;                (map
+;;                  (lambda (x)
+;;                    (if (number? (cdr x))
+;;                        (cons (car x) (number->string (cdr x)))
+;;                      x))
+;;                  y))
+;;              (get-mpd-response (mpdDatabase::ls-info client "Born to Run"))))
+;; (map
+;;   (lambda (song)
+;;     (mpdPlaylistCurrent::add! client (assoc-ref song 'file)))
+;;   (get-mpd-response (mpdDatabase::list-all client)))
+;; (mpd-disconnect client)
 
+(let main ([mainWindow     (begin
+                             (mpd-connect client)
 
+                             (mpdPlaylistCurrent::clear! client)
+                             (mpdPlaylistCurrent::add!
+                               client
+                               (assoc-ref
+                                 (car (get-mpd-response
+                                        (mpdDatabase::list-all client)))
+                                 'directory))
 
-(let main ([main_window     (windows::build-columned-window stdscr
-                                                            "Track" "Title"
-                                                            "Genre" "Artist"
-                                                            "Album" "Time")]
-           [past_dimensions                               (getmaxyx stdscr)]
-           [d                                                            db])
-  (let [(new_past_dimensions (main_window #:get-max-y-x))]
-    (main_window #:refresh)
+                             (let loop ([w (windows::build-columned-window
+                                             stdscr   "Track"
+                                             "Title"  "Genre"
+                                             "Artist" "Album" "Time")]
+                                        [s (get-mpd-response
+                                             (mpdPlaylistCurrent::playlist-info
+                                               client))])
+                               (if (null? s)
+                                   (begin
+                                     (mpd-disconnect client)
+                                     w)
+                                 (loop
+                                   (w #:add-new-line
+                                        (map
+                                          (lambda (x)
+                                            (if (number? (cdr x))
+                                                (cons
+                                                  (car x)
+                                                  (number->string (cdr x)))
+                                              x))
+                                          (car s))
+                                        #f)
+                                   (cdr s)))))]
+           [pastDimensions (getmaxyx stdscr)])
+    (let [(newPastDimensions (mainWindow #:get-max-y-x))]
+      (mainWindow #:refresh)
 
-    (let* [(new_win (if (not (equal?
-                               (main_window #:get-max-y-x)
-                               past_dimensions))
-                        (main_window #:rebuild)
-                      main_window))
-           (char    (getch (new_win #:get-window)))]
-      (cond
-       [(equal? char #\a)       (main
-                                  (new_win #:add-new-line (car d) #f)
-                                  new_past_dimensions
-                                  (cdr d))]
-       [(equal? char #\i)       (main
-                                  (new_win #:add-new-line (car d) 5)
-                                  new_past_dimensions
-                                  (cdr d))]
-       [(equal? char KEY_NPAGE) (main
-                                  (new_win #:move-cursor  10)
-                                  new_past_dimensions
-                                  d)]
-       [(equal? char #\n)       (main
-                                  (new_win #:move-cursor  3)
-                                  new_past_dimensions
-                                  d)]
-       [(equal? char KEY_DOWN)  (main
-                                  (new_win #:move-cursor  1)
-                                  new_past_dimensions
-                                  d)]
-       [(equal? char KEY_PPAGE) (main
-                                  (new_win #:move-cursor -10)
-                                  new_past_dimensions
-                                  d)]
-       [(equal? char #\p)       (main
-                                  (new_win #:move-cursor -3)
-                                  new_past_dimensions
-                                  d)]
-       [(equal? char KEY_UP)    (main
-                                  (new_win #:move-cursor -1)
-                                  new_past_dimensions
-                                  d)]
-       [(not (equal? char #\q)) (main new_win new_past_dimensions d)]))))
+      (let* ([newWin (if (not (equal?
+                                (mainWindow #:get-max-y-x)
+                                pastDimensions))
+                         (mainWindow #:rebuild)
+                       mainWindow)]
+             [char   (getch (newWin #:get-window))])
+        (cond
+         ;; [(equal? char #\a)       (main
+         ;;                            (newWin #:add-new-line (car d) #f)
+         ;;                            newPastDimensions
+         ;;                            (cdr d))]
+         ;; [(equal? char #\i)       (main
+         ;;                            (newWin #:add-new-line (car d) 5)
+         ;;                            newPastDimensions
+         ;;                            (cdr d))]
+         [(equal? char KEY_NPAGE)   (main
+                                      (newWin #:move-cursor  10)
+                                      newPastDimensions)]
+         [(equal? char #\n)         (main
+                                      (newWin #:move-cursor  3)
+                                      newPastDimensions)]
+         [(equal? char KEY_DOWN)    (main
+                                      (newWin #:move-cursor  1)
+                                      newPastDimensions)]
+         [(equal? char KEY_PPAGE)   (main
+                                      (newWin #:move-cursor -10)
+                                      newPastDimensions)]
+         [(equal? char #\p)         (main
+                                      (newWin #:move-cursor -3)
+                                      newPastDimensions)]
+         [(equal? char KEY_UP)      (main
+                                      (newWin #:move-cursor -1)
+                                      newPastDimensions)]
+         [(or
+            (equal? char KEY_ENTER)
+            (equal? char #\b))      (newWin #:play client)
+                                    (main newWin newPastDimensions)]
+         [(equal? char #\space)     (mpd-connect    client)
+                                    (if (string=?
+                                          (assoc-ref
+                                            (get-mpd-response
+                                              (mpdStatus::status client))
+                                            'state)
+                                          "play")
+                                        (mpdPlaybackControl::pause client #t)
+                                      (mpdPlaybackControl::pause client #f))
+                                    (mpd-disconnect client)
+                                    (main newWin newPastDimensions)]
+         [(not (equal? char #\q))   (main newWin newPastDimensions)]))))
 
 (endwin)
 
@@ -92,5 +132,10 @@
 ;;            (mpdDatabase::ls-info
 ;;              client
 ;;              (cdadar (get-mpd-response (mpdDatabase::list-all client))))))
-(display db)
+;; (display db)
 (newline)
+(newline)
+(mpd-connect    client)
+;; (display (get-mpd-response (mpdDatabase::list-all client)))
+(display (get-mpd-response (mpdPlaylistCurrent::playlist-info client)))
+(mpd-disconnect client)
