@@ -89,40 +89,43 @@
          ;;                            (newWin #:add-new-line (car d) 5)
          ;;                            newPastDimensions
          ;;                            (cdr d))]
-         [(equal? char KEY_NPAGE)   (main
-                                      (newWin #:move-cursor  10)
-                                      newPastDimensions)]
-         [(equal? char #\n)         (main
-                                      (newWin #:move-cursor  3)
-                                      newPastDimensions)]
-         [(equal? char KEY_DOWN)    (main
-                                      (newWin #:move-cursor  1)
-                                      newPastDimensions)]
-         [(equal? char KEY_PPAGE)   (main
-                                      (newWin #:move-cursor -10)
-                                      newPastDimensions)]
-         [(equal? char #\p)         (main
-                                      (newWin #:move-cursor -3)
-                                      newPastDimensions)]
-         [(equal? char KEY_UP)      (main
-                                      (newWin #:move-cursor -1)
-                                      newPastDimensions)]
+         [(equal? char KEY_NPAGE)    (main
+                                       (newWin #:move-cursor  10)
+                                       newPastDimensions)]
+         [(equal? char #\n)          (main
+                                       (newWin #:move-cursor  3)
+                                       newPastDimensions)]
+         [(equal? char KEY_DOWN)     (main
+                                       (newWin #:move-cursor  1)
+                                       newPastDimensions)]
+         [(equal? char KEY_PPAGE)    (main
+                                       (newWin #:move-cursor -10)
+                                       newPastDimensions)]
+         [(equal? char #\p)          (main
+                                       (newWin #:move-cursor -3)
+                                       newPastDimensions)]
+         [(equal? char KEY_UP)       (main
+                                       (newWin #:move-cursor -1)
+                                       newPastDimensions)]
          [(or
+            (equal? char #\b)
+            (equal? char 13)
+            (equal? char 10)
             (equal? char KEY_ENTER)
-            (equal? char #\b))      (newWin #:play client)
-                                    (main newWin newPastDimensions)]
-         [(equal? char #\space)     (mpd-connect    client)
-                                    (if (string=?
-                                          (assoc-ref
-                                            (get-mpd-response
-                                              (mpdStatus::status client))
-                                            'state)
-                                          "play")
-                                        (mpdPlaybackControl::pause client #t)
-                                      (mpdPlaybackControl::pause client #f))
-                                    (mpd-disconnect client)
-                                    (main newWin newPastDimensions)]
-         [(not (equal? char #\q))   (main newWin newPastDimensions)]))))
+            (equal? char #\newline)) (newWin #:play client)
+                                     (main newWin newPastDimensions)]
+         [(equal? char #\space)      (mpd-connect    client)
+                                     (if (string=?
+                                           (assoc-ref
+                                             (get-mpd-response
+                                               (mpdStatus::status client))
+                                             'state)
+                                           "play")
+                                         (mpdPlaybackControl::pause client #t)
+                                       (mpdPlaybackControl::pause client #f))
+                                     (mpd-disconnect client)
+                                     (main newWin newPastDimensions)]
+         [(not (equal? char #\q))    (main newWin newPastDimensions)]))))
 
 (endwin)
 
