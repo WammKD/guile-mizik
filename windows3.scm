@@ -1,6 +1,6 @@
 #!/usr/local/bin/guile
 !#
-(use-modules (srfi srfi-1))
+(use-modules (srfi srfi-1) (ice-9 threads))
 
 (define (2+ num)
   (+ num 2))
@@ -408,7 +408,12 @@
       (if rev?
           (write-line
             winHeightDiff
-            (assoc-ref (get-mpd-response (mpdStatus::status MPDclient)) 'state)
+            (let ([status (assoc-ref (get-mpd-response
+                                       (mpdStatus::status MPDclient)) 'state)])
+              (cond
+               [(string=? status "stop")  " ▪"]
+               [(string=? status "play")  " ▶"]
+               [(string=? status "pause") " 𝍪"]))
             (getmaxx window)
             A_REVERSE)
         (let ([windowLength (getmaxy window)])
@@ -419,7 +424,19 @@
             (iota height winHeightDiff)))))
 
     (mpd-connect MPDclient)
-    (let ([diff (- (getmaxy window) height)])
+    (let* ([diff (- (getmaxy window) height)]
+           [stup (call-with-new-thread (lambda ()
+                                         (let loop ([numList (reverse (iota 50))])
+                                           (when (not (null? numList))
+                                             (addstr
+                                               window
+                                               (number->string (car numList))
+                                               #:y diff
+                                               #:x 3)
+                                             (chgat window 2 A_REVERSE 0 #:x 3 #:y diff)
+                                             (refresh window)
+                                             (sleep 1)
+                                             (loop (cdr numList))))))])
       (write-lines diff #t)
       (when (not start?)
         (mpd-disconnect MPDclient))
