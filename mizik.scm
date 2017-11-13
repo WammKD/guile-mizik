@@ -48,9 +48,8 @@
                                  'directory))
 
                              (let loop ([w (windows::build-columned-window
-                                             stdscr   "Track"
-                                             "Title"  "Genre"
-                                             "Artist" "Album" "Time")]
+                                             stdscr  client   "Track" "Title"
+                                             "Genre" "Artist" "Album" "Time")]
                                         [s (get-mpd-response
                                              (mpdPlaylistCurrent::playlist-info
                                                client))])
@@ -77,7 +76,7 @@
       (let* ([newWin (if (not (equal?
                                 (mainWindow #:get-max-y-x)
                                 pastDimensions))
-                         (mainWindow #:rebuild)
+                         (mainWindow #:rebuild client)
                        mainWindow)]
              [char   (getch (newWin #:get-window))])
         (cond
@@ -112,18 +111,9 @@
             (equal? char 13)
             (equal? char 10)
             (equal? char KEY_ENTER)
-            (equal? char #\newline)) (newWin #:play client)
+            (equal? char #\newline)) (newWin #:play        client)
                                      (main newWin newPastDimensions)]
-         [(equal? char #\space)      (mpd-connect    client)
-                                     (if (string=?
-                                           (assoc-ref
-                                             (get-mpd-response
-                                               (mpdStatus::status client))
-                                             'state)
-                                           "play")
-                                         (mpdPlaybackControl::pause client #t)
-                                       (mpdPlaybackControl::pause client #f))
-                                     (mpd-disconnect client)
+         [(equal? char #\space)      (newWin #:toggle-play client)
                                      (main newWin newPastDimensions)]
          [(not (equal? char #\q))    (main newWin newPastDimensions)]))))
 

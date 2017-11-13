@@ -26,8 +26,8 @@
                                 lenOfListHead
                               startIndex))))))
 
-(define (windows::build-columned-window win . captions)
-  (define (build-columns wind elements columnsOrCaptions)
+(define (windows::build-columned-window win mpd . captions)
+  (define (build-columns wind elements columnsOrCaptions playWinHt)
     (let ([windowWidth  (getmaxx wind)]
           [captionTotal (if elements
                             -1
@@ -44,7 +44,8 @@
                                ((car current) #:rebuild-with-size
                                                 elements
                                                 offset
-                                                (- windowWidth offset))
+                                                (- windowWidth offset)
+                                                playWinHt)
                              (column
                                wind
                                (car current)
@@ -53,7 +54,7 @@
                                (- windowWidth offset))) result))
           (let* ([cc  (car current)]
                  [col (if elements
-                          (cc #:rebuild-with-size elements offset #f)
+                          (cc #:rebuild-with-size elements offset #f playWinHt)
                         (column
                           wind
                           cc
@@ -80,11 +81,11 @@
                           (inexact->exact
                             (round (* percentage (getmaxx window))))))
 
-    (define (check-height newLinesLength)
-      (let ([linesLength (1- (getmaxy window))])
+    (define (check-height newLinesLength playWindowHeight)
+      (let ([linesLength (1- (- (getmaxy window) playWindowHeight))])
         (when (> newLinesLength linesLength)
           (error (string-append
-                   "In procedure column#:get-new-line: additional line "
+                   "In procedure column#:add-new-line: additional line "
                    "pushes lines length to larger value "
                    "(" (number->string newLinesLength) ") than window height "
                    "(" (number->string linesLength)    ")")))))
@@ -141,7 +142,7 @@
                                                              line
                                                              (string->symbol
                                                                header))])
-                                             (check-height newLen)
+                                             (check-height newLen (cadddr xs))
 
                                              (column
                                                window
@@ -179,7 +180,8 @@
                                              offset
                                              percentage)]
          [(eq? method #:rebuild-with-size) (check-height
-                                             (length (car xs)))
+                                             (length (car xs))
+                                             (cadddr xs))
 
                                            (column
                                              window
@@ -191,10 +193,13 @@
                                                    perc
                                                  percentage)))]))))
 
-  (define (columned-window window       masterList allColumns
-                           highlightPos begPos     endPos)
+  (define (columned-window window     playWindow   masterList
+                           allColumns highlightPos begPos     endPos)
+    (define (calculate-height)
+      (- (getmaxy window) (playWindow #:get-height)))
+
     (chgat window -1 A_REVERSE 0 #:x 0 #:y 0)
-    (if (>= highlightPos (getmaxy window))
+    (if (>= highlightPos (calculate-height))
         (error highlightPos)
       (chgat window -1 A_REVERSE 0 #:x 0 #:y highlightPos))
 
@@ -206,14 +211,26 @@
        [(eq? method #:get-max-x)    (getmaxx  window)]
        [(eq? method #:refresh)      (refresh  window)]
        [(eq? method #:play)         (when (> highlightPos 0)
-                                      (mpd-connect (car xs))
+                                      (mpd-connect    (car xs))
                                       (mpdPlaybackControl::play
                                         (car xs)
                                         (+ begPos (1- highlightPos)))
-                                      (mpd-disconnect (car xs)))]
+                                      (mpd-disconnect (car xs))
+                                      (playWindow #:rebuild (car xs)))]
+       [(eq? method #:toggle-play)  (mpd-connect    (car xs))
+                                    (if (string=?
+                                          (assoc-ref
+                                            (get-mpd-response
+                                              (mpdStatus::status client))
+                                            'state)
+                                          "play")
+                                        (mpdPlaybackControl::pause client #t)
+                                      (mpdPlaybackControl::pause client #f))
+                                    (mpd-disconnect (car xs))
+                                    (playWindow #:rebuild (car xs))]
        [(eq? method #:move-cursor)
              (let ([newPos               (+ highlightPos (car xs))]
-                   [winLen                        (getmaxy window)]
+                   [winLen                      (calculate-height)]
                    [listLen                    (length masterList)]
                    [lastVisibleLineOfWin         (- endPos begPos)])
                (when (not (= highlightPos 0))
@@ -223,6 +240,7 @@
                 [(between? 0 newPos (1+ lastVisibleLineOfWin))
                       (columned-window
                         window
+                        playWindow
                         masterList
                         allColumns
                         (if (and (negative? newPos) (zero? highlightPos))
@@ -244,11 +262,13 @@
                    (and
                      (< newPos                    0)
                      (= highlightPos                    0)))
-                      (columned-window window       masterList allColumns
+                      (columned-window window       playWindow
+                                       masterList   allColumns
                                        highlightPos begPos     endPos)]
                 [(and (< newPos 1) (< (+ begPos (car xs)) 0))
                       (columned-window
                         window
+                        playWindow
                         masterList
                         (map
                           (lambda (col)
@@ -270,6 +290,7 @@
                                          (2+ winLen))])
                         (columned-window
                           window
+                          playWindow
                           masterList
                           (map
                             (lambda (col)
@@ -290,6 +311,7 @@
                                          (+ endPos (car xs)))])
                         (columned-window
                           window
+                          playWindow
                           masterList
                           (map
                             (lambda (col)
@@ -302,7 +324,7 @@
                 [else (display "Purposeful Error")]))]
        [(eq? method #:add-new-line) (let* ([line                 (car xs)]
                                            [masterLen (length masterList)]
-                                           [winHeight    (getmaxy window)]
+                                           [winHeight  (calculate-height)]
                                            [index     (if (cadr xs)
                                                           (cadr xs)
                                                         masterLen)]
@@ -316,6 +338,7 @@
                                                         (1- winHeight))])
                                       (columned-window
                                         window
+                                        playWindow
                                         (append
                                           (: masterList 0 index)
                                           (list line)
@@ -325,45 +348,90 @@
                                               (map
                                                 (lambda (col)
                                                   (col #:add-new-line
-                                                         line modPos inc?))
+                                                         line modPos
+                                                         inc? (playWindow
+                                                                #:get-height)))
                                                 allColumns))
                                           allColumns)
                                         highlightPos
                                         begPos
                                         (if inc? (1+ endPos) endPos)))]
        [(eq? method #:rebuild)
-             (let* ([listLen                  (length masterList)]
+             (let* ([pw           (playWindow #:rebuild (car xs))]
+                    [listLen                  (length masterList)]
                     [remaining                 (- listLen begPos)]
-                    [winHeight                   (getmaxy window)]
+                    [winHeight                 (calculate-height)]
                     [linesHeight                   (1- winHeight)]
-                    [currSongIndex   (1- (+ begPos highlightPos))]
+                    [currSongIndx    (1- (+ begPos highlightPos))]
                     [winSmaller         (> remaining linesHeight)]
                     [winHalf       (inexact->exact
                                      (round (/ linesHeight 2.0)))]
-                    [newBegPos     (if (> (- listLen begPos) linesHeight)
-                                       (cond
-                                        [(< (- currSongIndex winHalf) 0)
-                                              0]
-                                        [(<= (- listLen currSongIndex) winHalf)
-                                              (- listLen linesHeight)]
-                                        [else (- currSongIndex winHalf)])
-                                     begPos)]
-                    [newEndPos     (if winSmaller 
-                                       (+ newBegPos linesHeight)
-                                     listLen)])
+                    [newBegPos    (if (> (- listLen begPos) linesHeight)
+                                      (cond
+                                       [(< (- currSongIndx winHalf) 0)
+                                             0]
+                                       [(<= (- listLen currSongIndx) winHalf)
+                                             (- listLen linesHeight)]
+                                       [else (- currSongIndx winHalf)])
+                                    begPos)]
+                    [newEndPos    (if winSmaller 
+                                      (+ newBegPos linesHeight)
+                                    listLen)])
                (columned-window
                  window
+                 pw
                  masterList
                  (build-columns
                    window
                    (: masterList newBegPos newEndPos)
-                   allColumns)
+                   allColumns
+                   (pw #:get-height))
                  (if (> (- listLen begPos) linesHeight)
-                     (- (1+ currSongIndex) newBegPos)
+                     (- (1+ currSongIndx) newBegPos)
                    highlightPos)
                  newBegPos
                  newEndPos))])))
 
+  (define* (play-window window MPDclient start? #:optional [height 2])
+    (define (write-lines winHeightDiff rev?)
+      (define (write-line lineIndex lineString winLength state)
+        (addstr
+          window
+          (string-concatenate
+            (cons lineString (make-list (- winLength (string-length
+                                                       lineString)) " ")))
+          #:y lineIndex
+          #:x 0)
+
+        (chgat window -1 state 0 #:x 0 #:y lineIndex))
+
+      (if rev?
+          (write-line
+            winHeightDiff
+            (assoc-ref (get-mpd-response (mpdStatus::status MPDclient)) 'state)
+            (getmaxx window)
+            A_REVERSE)
+        (let ([windowLength (getmaxy window)])
+          (for-each
+            (lambda (lineHeight)
+              (when (< lineHeight windowLength)
+                (write-line winHeightDiff "" windowLength A_NORMAL)))
+            (iota height winHeightDiff)))))
+
+    (mpd-connect MPDclient)
+    (let ([diff (- (getmaxy window) height)])
+      (write-lines diff #t)
+      (when (not start?)
+        (mpd-disconnect MPDclient))
+
+      (lambda (method . xs)
+        (cond
+         [(eq? method #:get-height)                                  height]
+         [(eq? method #:rebuild)    (write-lines diff #f)
+                                    (play-window window (car xs) #f height)]))))
 
 
-  (columned-window win '() (build-columns win #f captions) 0 0 0))
+
+  (columned-window win (play-window   win mpd #t)
+                   '() (build-columns win #f  captions #f)
+                   0   0                                   0))
