@@ -392,11 +392,11 @@
                  newBegPos
                  newEndPos))])))
 
-  (define* (play-window window MPDclient start? #:optional [height 2])
-    (define (write-lines winHeightDiff rev?)
+  (define* (play-window window MPDclient runningThread #:optional [height 2])
+    (define (write-lines wind windHeightDiff statusString rev?)
       (define (write-line lineIndex lineString winLength state)
         (addstr
-          window
+          wind
           (string-concatenate
             (cons lineString (make-list (- winLength (string-length
                                                        lineString)) " ")))
@@ -406,49 +406,56 @@
         (chgat window -1 state 0 #:x 0 #:y lineIndex))
 
       (if rev?
-          (write-line
-            winHeightDiff
-            (let ([status (assoc-ref (get-mpd-response
-                                       (mpdStatus::status MPDclient)) 'state)])
-              (cond
-               [(string=? status "stop")  " ▪"]
-               [(string=? status "play")  " ▶"]
-               [(string=? status "pause") " 𝍪"]))
-            (getmaxx window)
-            A_REVERSE)
-        (let ([windowLength (getmaxy window)])
+          (write-line windHeightDiff statusString (getmaxx wind) A_REVERSE)
+        (let ([windowLength (getmaxy wind)])
           (for-each
             (lambda (lineHeight)
               (when (< lineHeight windowLength)
-                (write-line winHeightDiff "" windowLength A_NORMAL)))
-            (iota height winHeightDiff)))))
+                (write-line windHeightDiff "" windowLength A_NORMAL)))
+            (iota height windHeightDiff)))))
 
-    (mpd-connect MPDclient)
-    (let* ([diff (- (getmaxy window) height)]
-           [stup (call-with-new-thread (lambda ()
-                                         (let loop ([numList (reverse (iota 50))])
-                                           (when (not (null? numList))
-                                             (addstr
-                                               window
-                                               (number->string (car numList))
-                                               #:y diff
-                                               #:x 3)
-                                             (chgat window 2 A_REVERSE 0 #:x 3 #:y diff)
-                                             (refresh window)
-                                             (sleep 1)
-                                             (loop (cdr numList))))))])
-      (write-lines diff #t)
-      (when (not start?)
-        (mpd-disconnect MPDclient))
+    (define (set-display win client heightMeasurement loop?)
+      (mpd-connect client)
+      (let ([status (get-mpd-response (mpdStatus::status client))])
+        (mpd-disconnect client)
+
+        (let ([state   (let ([stateString (assoc-ref status 'state)])
+                         (cond
+                          [(string=? stateString "stop")  " ▪ "]
+                          [(string=? stateString "play")  " ▶ "]
+                          [(string=? stateString "pause") " 𝍪 "]))]
+              [elapsed                 (assoc-ref status 'elapsed)]
+              [time                    (assoc-ref status 'time)   ])
+          (write-lines
+            win
+            (- (getmaxy win) heightMeasurement)
+            (string-append state (if elapsed
+                                     (number->string elapsed)
+                                   "0:00") " / " (if time time "0:00"))
+            #t)
+          (refresh win)))
+
+      (when loop?
+        (sleep 1)
+        (set-display win client heightMeasurement loop?)))
+
+    (let ([diff (- (getmaxy window) height)]
+          [stup (if runningThread
+                    runningThread
+                  (call-with-new-thread (lambda ()
+                                          (set-display window (new-mpd-client)
+                                                       height #t))))])
 
       (lambda (method . xs)
         (cond
-         [(eq? method #:get-height)                                  height]
-         [(eq? method #:rebuild)    (write-lines diff #f)
-                                    (play-window window (car xs) #f height)]))))
+         [(eq? method #:get-height)                      height]
+         [(eq? method #:rebuild)    (write-lines window diff #f #f)
+                                    (set-display window (car xs) height #f)
+                                    (play-window window (car xs)
+                                                 stup   height)]))))
 
 
 
-  (columned-window win (play-window   win mpd #t)
+  (columned-window win (play-window   win mpd #f)
                    '() (build-columns win #f  captions #f)
                    0   0                                   0))
