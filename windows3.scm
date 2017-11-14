@@ -415,8 +415,17 @@
             (iota height windHeightDiff)))))
 
     (define (set-display win client heightMeasurement loop?)
+      (define (parse-seconds seconds)
+        (let* ([rounded        (inexact->exact (floor seconds))]
+               [mins    (number->string (quotient  rounded 60))]
+               [secs    (number->string (remainder rounded 60))])
+          (string-append mins ":" (if (= (string-length secs) 1)
+                                      (string-append "0" secs)
+                                    secs))))
+
       (mpd-connect client)
-      (let ([status (get-mpd-response (mpdStatus::status client))])
+      (let ([status (get-mpd-response (mpdStatus::status       client))]
+            [song   (get-mpd-response (mpdStatus::current-song client))])
         (mpd-disconnect client)
 
         (let ([state   (let ([stateString (assoc-ref status 'state)])
@@ -425,13 +434,15 @@
                           [(string=? stateString "play")  " ▶ "]
                           [(string=? stateString "pause") " 𝍪 "]))]
               [elapsed                 (assoc-ref status 'elapsed)]
-              [time                    (assoc-ref status 'time)   ])
+              [time                    (assoc-ref song   'Time)   ])
           (write-lines
             win
             (- (getmaxy win) heightMeasurement)
             (string-append state (if elapsed
-                                     (number->string elapsed)
-                                   "0:00") " / " (if time time "0:00"))
+                                     (parse-seconds elapsed)
+                                   "0:00") " / " (if time
+                                                     (parse-seconds time)
+                                                   "0:00"))
             #t)
           (refresh win)))
 
