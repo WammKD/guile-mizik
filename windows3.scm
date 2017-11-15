@@ -407,10 +407,10 @@
 
       (if rev?
           (write-line windHeightDiff statusString (getmaxx wind) A_REVERSE)
-        (let ([windowLength (getmaxy wind)])
+        (let ([windowLength (getmaxx wind)])
           (for-each
             (lambda (lineHeight)
-              (when (< lineHeight windowLength)
+              (when (< lineHeight (getmaxy wind))
                 (write-line windHeightDiff "" windowLength A_NORMAL)))
             (iota height windHeightDiff)))))
 
