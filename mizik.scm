@@ -76,7 +76,7 @@
       (let* ([newWin (if (not (equal?
                                 (mainWindow #:get-max-y-x)
                                 pastDimensions))
-                         (mainWindow #:rebuild client)
+                         (mainWindow #:rebuild)
                        mainWindow)]
              [char   (getch (newWin #:get-window))])
         (cond

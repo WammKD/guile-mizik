@@ -357,7 +357,7 @@
                                         begPos
                                         (if inc? (1+ endPos) endPos)))]
        [(eq? method #:rebuild)
-             (let* ([pw           (playWindow #:rebuild (car xs))]
+             (let* ([pw                    (playWindow #:rebuild)]
                     [listLen                  (length masterList)]
                     [remaining                 (- listLen begPos)]
                     [winHeight                 (calculate-height)]
@@ -392,7 +392,7 @@
                  newBegPos
                  newEndPos))])))
 
-  (define* (play-window window MPDclient runningThread #:optional [height 2])
+  (define* (play-window window runningThread #:optional [height 2])
     (define (write-lines wind windHeightDiff statusString rev?)
       (define (write-line lineIndex lineString winLength state)
         (addstr
@@ -411,7 +411,7 @@
           (for-each
             (lambda (lineHeight)
               (when (< lineHeight (getmaxy wind))
-                (write-line windHeightDiff "" windowLength A_NORMAL)))
+                (write-line lineHeight "" windowLength A_NORMAL)))
             (iota height windHeightDiff)))))
 
     (define (set-display win client heightMeasurement loop?)
@@ -461,12 +461,12 @@
         (cond
          [(eq? method #:get-height)                      height]
          [(eq? method #:rebuild)    (write-lines window diff #f #f)
-                                    (set-display window (car xs) height #f)
-                                    (play-window window (car xs)
-                                                 stup   height)]))))
+                                    (set-display window (new-mpd-client)
+                                                 height #f)
+                                    (play-window window stup height)]))))
 
 
 
-  (columned-window win (play-window   win mpd #f)
+  (columned-window win (play-window   win #f)
                    '() (build-columns win #f  captions #f)
                    0   0                                   0))
