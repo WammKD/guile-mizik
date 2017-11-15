@@ -451,7 +451,10 @@
         (set-display win client heightMeasurement loop?)))
 
     (let ([diff (- (getmaxy window) height)]
-          [stup (if runningThread
+          [stup (if (and
+                      runningThread
+                      (not (unspecified?   runningThread))
+                      (not (thread-exited? runningThread)))
                     runningThread
                   (call-with-new-thread (lambda ()
                                           (set-display window (new-mpd-client)
