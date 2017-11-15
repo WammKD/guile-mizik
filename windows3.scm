@@ -461,8 +461,10 @@
         (cond
          [(eq? method #:get-height)                      height]
          [(eq? method #:rebuild)    (write-lines window diff #f #f)
-                                    (set-display window (new-mpd-client)
-                                                 height #f)
+                                    (call-with-new-thread
+                                      (lambda ()
+                                        (set-display window (new-mpd-client)
+                                                     height #f)))
                                     (play-window window stup height)]))))
 
 
