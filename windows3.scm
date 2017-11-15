@@ -459,7 +459,7 @@
 
       (lambda (method . xs)
         (cond
-         [(eq? method #:get-height)                      height]
+         [(eq? method #:get-height)                           height]
          [(eq? method #:rebuild)    (write-lines window diff #f #f)
                                     (call-with-new-thread
                                       (lambda ()
