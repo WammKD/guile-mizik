@@ -414,7 +414,7 @@
                 (write-line lineHeight "" windowLength A_NORMAL)))
             (iota height windHeightDiff)))))
 
-    (define (set-display win client box heightMeasurement loop?)
+    (define (set-display win client box heightMeasurement)
       (define (parse-seconds seconds)
         (let* ([rounded        (inexact->exact (floor seconds))]
                [mins    (number->string (quotient  rounded 60))]
@@ -444,18 +444,15 @@
           (write-lines win (- (getmaxy win) heightMeasurement) status #t)
           (atomic-box-set! box status)
           (refresh win)))
-
-      (when loop?
-        (sleep 1)
-        (set-display win client box heightMeasurement loop?)))
+      (sleep 1)
+      (set-display win client box heightMeasurement))
 
     (let ([diff (- (getmaxy window) height)]
           [stup (if runningThread
                     runningThread
                   (call-with-new-thread (lambda ()
-                                          (set-display
-                                            window (new-mpd-client)
-                                            aBox   height           #t))))])
+                                          (set-display window (new-mpd-client)
+                                                       aBox   height))))])
 
       (lambda (method . xs)
         (cond
