@@ -424,23 +424,35 @@
                                     secs))))
 
       (mpd-connect client)
-      (let ([status (get-mpd-response (mpdStatus::status       client))]
-            [song   (get-mpd-response (mpdStatus::current-song client))])
+      (let ([status (get-mpd-response (mpdStatus::status client))])
         (mpd-disconnect client)
 
-        (let* ([state   (let ([stateString (assoc-ref status 'state)])
-                          (cond
-                           [(string=? stateString "stop")  " ▪ "]
-                           [(string=? stateString "play")  " ▶ "]
-                           [(string=? stateString "pause") " 𝍪 "]))]
-               [elapsed                 (assoc-ref status 'elapsed)]
-               [time                    (assoc-ref song   'Time)   ]
-               [status  (string-append state (if elapsed
-                                                 (parse-seconds elapsed)
-                                               "0:00") " / " (if time
-                                                                 (parse-seconds
-                                                                   time)
-                                                               "0:00"))])
+        (let ([status (let ([stateString (assoc-ref status 'state)])
+                        (cond
+                         [(string=? stateString "stop")
+                               " ▪ 0:00 / 0:00"]
+                         [(string=? stateString "play")
+                               (mpd-connect client)
+                               (let ([song (get-mpd-response
+                                            (mpdStatus::current-song
+                                              client))])
+                                 (mpd-disconnect client)
+                                 (string-append
+                                   " ▶ "
+                                   (parse-seconds (assoc-ref status 'elapsed))
+                                   " / "
+                                   (parse-seconds (assoc-ref song   'Time))))]
+                         [(string=? stateString "pause")
+                               (mpd-connect client)
+                               (let ([song (get-mpd-response
+                                            (mpdStatus::current-song
+                                              client))])
+                                 (mpd-disconnect client)
+                                 (string-append
+                                   " 𝍪 "
+                                   (parse-seconds (assoc-ref status 'elapsed))
+                                   " / "
+                                   (parse-seconds (assoc-ref song   'Time))))]))])
           (write-lines win (- (getmaxy win) heightMeasurement) status #t)
           (atomic-box-set! box status)
           (refresh win)))
