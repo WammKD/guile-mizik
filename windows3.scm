@@ -1,6 +1,6 @@
 #!/usr/local/bin/guile
 !#
-(use-modules (srfi srfi-1) (ice-9 threads))
+(use-modules (srfi srfi-1) (ice-9 threads) (ice-9 atomic))
 
 (define (2+ num)
   (+ num 2))
@@ -392,7 +392,7 @@
                  newBegPos
                  newEndPos))])))
 
-  (define* (play-window window runningThread #:optional [height 2])
+  (define* (play-window window runningThread aBox #:optional [height 2])
     (define (write-lines wind windHeightDiff statusString rev?)
       (define (write-line lineIndex lineString winLength state)
         (addstr
@@ -414,7 +414,7 @@
                 (write-line lineHeight "" windowLength A_NORMAL)))
             (iota height windHeightDiff)))))
 
-    (define (set-display win client heightMeasurement loop?)
+    (define (set-display win client box heightMeasurement loop?)
       (define (parse-seconds seconds)
         (let* ([rounded        (inexact->exact (floor seconds))]
                [mins    (number->string (quotient  rounded 60))]
@@ -428,50 +428,48 @@
             [song   (get-mpd-response (mpdStatus::current-song client))])
         (mpd-disconnect client)
 
-        (let ([state   (let ([stateString (assoc-ref status 'state)])
-                         (cond
-                          [(string=? stateString "stop")  " ▪ "]
-                          [(string=? stateString "play")  " ▶ "]
-                          [(string=? stateString "pause") " 𝍪 "]))]
-              [elapsed                 (assoc-ref status 'elapsed)]
-              [time                    (assoc-ref song   'Time)   ])
-          (write-lines
-            win
-            (- (getmaxy win) heightMeasurement)
-            (string-append state (if elapsed
-                                     (parse-seconds elapsed)
-                                   "0:00") " / " (if time
-                                                     (parse-seconds time)
-                                                   "0:00"))
-            #t)
+        (let* ([state   (let ([stateString (assoc-ref status 'state)])
+                          (cond
+                           [(string=? stateString "stop")  " ▪ "]
+                           [(string=? stateString "play")  " ▶ "]
+                           [(string=? stateString "pause") " 𝍪 "]))]
+               [elapsed                 (assoc-ref status 'elapsed)]
+               [time                    (assoc-ref song   'Time)   ]
+               [status  (string-append state (if elapsed
+                                                 (parse-seconds elapsed)
+                                               "0:00") " / " (if time
+                                                                 (parse-seconds
+                                                                   time)
+                                                               "0:00"))])
+          (write-lines win (- (getmaxy win) heightMeasurement) status #t)
+          (atomic-box-set! box status)
           (refresh win)))
 
       (when loop?
         (sleep 1)
-        (set-display win client heightMeasurement loop?)))
+        (set-display win client box heightMeasurement loop?)))
 
     (let ([diff (- (getmaxy window) height)]
-          [stup (if (and
-                      runningThread
-                      (not (unspecified?   runningThread))
-                      (not (thread-exited? runningThread)))
+          [stup (if runningThread
                     runningThread
                   (call-with-new-thread (lambda ()
-                                          (set-display window (new-mpd-client)
-                                                       height #t))))])
+                                          (set-display
+                                            window (new-mpd-client)
+                                            aBox   height           #t))))])
 
       (lambda (method . xs)
         (cond
          [(eq? method #:get-height)                           height]
          [(eq? method #:rebuild)    (write-lines window diff #f #f)
-                                    (call-with-new-thread
-                                      (lambda ()
-                                        (set-display window (new-mpd-client)
-                                                     height #f)))
-                                    (play-window window stup height)]))))
+                                    (write-lines
+                                      window
+                                      (- (getmaxy window) height)
+                                      (atomic-box-ref aBox)
+                                      #t)
+                                    (play-window window stup aBox height)]))))
 
 
 
-  (columned-window win (play-window   win #f)
-                   '() (build-columns win #f  captions #f)
-                   0   0                                   0))
+  (columned-window win (play-window   win #f (make-atomic-box ""))
+                   '() (build-columns win #f captions             #f)
+                   0   0                                              0))
