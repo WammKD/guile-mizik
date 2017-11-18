@@ -252,16 +252,16 @@
                         endPos)]
                 [(or
                    (and
-                     (> newPos lastVisibleLineOfWin)
+                     (> newPos       lastVisibleLineOfWin)
                      (= highlightPos lastVisibleLineOfWin)
-                     (= endPos listLen))
+                     (= endPos       listLen))
                    (and
-                     (< newPos                    1)
-                     (= highlightPos                    1)
-                     (= begPos 0))
+                     (< newPos       1)
+                     (= highlightPos 1)
+                     (= begPos       0))
                    (and
-                     (< newPos                    0)
-                     (= highlightPos                    0)))
+                     (< newPos       0)
+                     (= highlightPos 0)))
                       (columned-window window       playWindow
                                        masterList   allColumns
                                        highlightPos begPos     endPos)]
@@ -479,6 +479,6 @@
 
 
 
-  (columned-window win (play-window   win #f (make-atomic-box ""))
+  (columned-window win (play-window   win #f (make-atomic-box "") 3)
                    '() (build-columns win #f captions             #f)
                    0   0                                              0))
