@@ -427,34 +427,55 @@
       (let ([status (get-mpd-response (mpdStatus::status client))])
         (mpd-disconnect client)
 
-        (let ([status (let ([stateString (assoc-ref status 'state)])
-                        (cond
-                         [(string=? stateString "stop")
-                               " ▪ 0:00 / 0:00"]
-                         [(string=? stateString "play")
-                               (mpd-connect client)
-                               (let ([song (get-mpd-response
-                                            (mpdStatus::current-song
-                                              client))])
-                                 (mpd-disconnect client)
-                                 (string-append
-                                   " ▶ "
-                                   (parse-seconds (assoc-ref status 'elapsed))
-                                   " / "
-                                   (parse-seconds (assoc-ref song   'Time))))]
-                         [(string=? stateString "pause")
-                               (mpd-connect client)
-                               (let ([song (get-mpd-response
-                                            (mpdStatus::current-song
-                                              client))])
-                                 (mpd-disconnect client)
-                                 (string-append
-                                   " 𝍪 "
-                                   (parse-seconds (assoc-ref status 'elapsed))
-                                   " / "
-                                   (parse-seconds (assoc-ref song   'Time))))]))])
-          (write-lines win (- (getmaxy win) heightMeasurement) status #t)
-          (atomic-box-set! box status)
+        (let ([stateString           (assoc-ref status 'state)]
+              [dh          (- (getmaxy win) heightMeasurement)])
+          (cond
+           [(string=? stateString "stop")
+                 (write-lines win dh      ""               #t)
+                 (write-lines win (1+ dh) " ▪ 0:00 / 0:00" #t)
+                 (atomic-box-set! box " ▪ 0:00 / 0:00")]
+           [(string=? stateString "play")
+                 (mpd-connect client)
+                 (let ([song (get-mpd-response
+                               (mpdStatus::current-song client))])
+                   (mpd-disconnect client)
+                   (let ([status   (string-append
+                                     " ▶ "
+                                     (parse-seconds
+                                       (assoc-ref status 'elapsed))
+                                     " / "
+                                     (parse-seconds
+                                       (assoc-ref song   'Time)))]
+                         [dispSong (string-append
+                                     (assoc-ref song 'Title)
+                                     " from "
+                                     (assoc-ref song 'Album)
+                                     " by "
+                                     (assoc-ref song 'Artist))])
+                     (write-lines win dh      dispSong #t)
+                     (write-lines win (1+ dh) status   #t)
+                     (atomic-box-set! box status)))]
+           [(string=? stateString "pause")
+                 (mpd-connect client)
+                 (let ([song (get-mpd-response
+                               (mpdStatus::current-song client))])
+                   (mpd-disconnect client)
+                   (let ([status   (string-append
+                                     " 𝍪 "
+                                     (parse-seconds
+                                       (assoc-ref status 'elapsed))
+                                     " / "
+                                     (parse-seconds
+                                       (assoc-ref song   'Time)))]
+                         [dispSong (string-append
+                                     (assoc-ref song 'Title)
+                                     " from "
+                                     (assoc-ref song 'Album)
+                                     " by "
+                                     (assoc-ref song 'Artist))])
+                     (write-lines win dh      dispSong #t)
+                     (write-lines win (1+ dh) status   #t)
+                     (atomic-box-set! box status)))])
           (refresh win)))
       (sleep 1)
       (set-display win client box heightMeasurement))
