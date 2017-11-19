@@ -609,9 +609,10 @@
                                                              (1+ (string-length
                                                                    state))
                                                              sIndex)))]
-                                              [newFlen (inexact->exact
-                                                         (floor
-                                                           (* fRatio newLen)))])
+                                              [newFlen  (inexact->exact
+                                                          (floor (*
+                                                                   fRatio
+                                                                   newLen)))])
                                          (write-lines
                                            window
                                            (1+ (- (getmaxy window) height))
