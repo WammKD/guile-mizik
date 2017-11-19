@@ -6,6 +6,8 @@
   (+ num 2))
 (define (2- num)
   (- num 2))
+(define (pos-or-to-zero num)
+  (if (negative? num) 0 num))
 (define (between? num1 num2 num3)
   (let ([lesser  (if (< num1 num3) num1 num3)]
         [greater (if (> num1 num3) num1 num3)])
@@ -211,13 +213,13 @@
        [(eq? method #:get-max-x)    (getmaxx  window)]
        [(eq? method #:refresh)      (refresh  window)]
        [(eq? method #:play)         (when (> highlightPos 0)
-                                      (mpd-connect    (car xs))
+                                      (mpd-connect (car xs))
                                       (mpdPlaybackControl::play
                                         (car xs)
                                         (+ begPos (1- highlightPos)))
                                       (mpd-disconnect (car xs))
                                       (playWindow #:rebuild (car xs)))]
-       [(eq? method #:toggle-play)  (mpd-connect    (car xs))
+       [(eq? method #:toggle-play)  (mpd-connect (car xs))
                                     (if (string=?
                                           (assoc-ref
                                             (get-mpd-response
@@ -407,9 +409,8 @@
           (addchstr
             wind
             ((if r? inverse-on inverse-off)
-              (string-concatenate (make-list (if (negative? (- winLength x))
-                                                 0
-                                               (- winLength x)) " ")))
+              (string-concatenate
+                (make-list (pos-or-to-zero (- winLength x)) " ")))
             #:y lineIndex
             #:x x)))
 
@@ -425,6 +426,28 @@
 
     (define (set-display win       client
                          statusBox displayedSongBox heightMeasurement)
+      (define (calc-progress-bar elapsed totalTime)
+        (let* ([remaining                         (- totalTime elapsed)]
+               [eString                       (parse-seconds   elapsed)]
+               [rString                       (parse-seconds remaining)]
+               [tString                       (parse-seconds totalTime)]
+               [totalLen                  (- (getmaxx win)           3
+                                             (string-length eString) 4
+                                             (string-length rString) 3
+                                             (string-length tString) 1)]
+               [firstLen  (inexact->exact
+                            (floor (* (/ elapsed totalTime) totalLen)))])
+          (string-append
+            eString
+            " ["
+            (string-concatenate/shared (make-list firstLen "="))
+            ">"
+            (string-concatenate/shared
+              (make-list (pos-or-to-zero (- totalLen firstLen 1)) "-"))
+            "] "
+            rString
+            " / "
+            tString)))
       (define (parse-seconds seconds)
         (let* ([rounded        (inexact->exact (round seconds))]
                [mins    (number->string (quotient  rounded 60))]
@@ -441,8 +464,13 @@
               [dh          (- (getmaxy win) heightMeasurement)])
           (cond
            [(string=? stateString "stop")
-                 (let ([status   (list (cons " ▪ 0:00 / 0:00" normal))]
-                       [dispSong (list (cons ""               normal))])
+                 (let ([status   (list (cons (string-append
+                                               " ▪ 0:00 ["
+                                               (string-concatenate/shared
+                                                 (make-list (- (getmaxx
+                                                                 win) 23) "-"))
+                                               "] 0:00 / 0:00") normal))]
+                       [dispSong (list (cons ""                 normal))])
                    (write-lines win dh      dispSong #t)
                    (write-lines win (1+ dh) status   #t)
                    (atomic-box-set! statusBox        status)
@@ -455,10 +483,8 @@
                    (let ([status   (list (cons
                                            (string-append
                                              " ▶ "
-                                             (parse-seconds
-                                               (assoc-ref status 'elapsed))
-                                             " / "
-                                             (parse-seconds
+                                             (calc-progress-bar
+                                               (assoc-ref status 'elapsed)
                                                (assoc-ref song   'Time)))
                                            normal))]
                          [dispSong (list

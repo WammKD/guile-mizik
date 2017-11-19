@@ -39,6 +39,8 @@
 (let main ([mainWindow     (begin
                              (mpd-connect client)
 
+                             (mpdPlaybackOption::consume! client #f)
+
                              (mpdPlaylistCurrent::clear! client)
                              (mpdPlaylistCurrent::add!
                                client
