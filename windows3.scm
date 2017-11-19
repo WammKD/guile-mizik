@@ -105,7 +105,7 @@
                                 (substring line 0 (2- columnWidth))
                                 ELLIPSIS
                                 " ")]
-         [else                (string-concatenate
+         [else                (string-concatenate/shared
                                 (cons line (make-list
                                              (- columnWidth lineLength)
                                              " ")))])))
@@ -409,7 +409,7 @@
           (addchstr
             wind
             ((if r? inverse-on inverse-off)
-              (string-concatenate
+              (string-concatenate/shared
                 (make-list (pos-or-to-zero (- winLength x)) " ")))
             #:y lineIndex
             #:x x)))
