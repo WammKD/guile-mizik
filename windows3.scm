@@ -218,7 +218,7 @@
                                         (car xs)
                                         (+ begPos (1- highlightPos)))
                                       (mpd-disconnect (car xs))
-                                      (playWindow #:rebuild (car xs)))]
+                                      (playWindow #:rebuild-play (car xs)))]
        [(eq? method #:toggle-play)  (mpd-connect (car xs))
                                     (if (string=?
                                           (assoc-ref
@@ -229,7 +229,7 @@
                                         (mpdPlaybackControl::pause client #t)
                                       (mpdPlaybackControl::pause client #f))
                                     (mpd-disconnect (car xs))
-                                    (playWindow #:rebuild (car xs))]
+                                    (playWindow #:rebuild-pause (car xs))]
        [(eq? method #:move-cursor)
              (let ([newPos               (+ highlightPos (car xs))]
                    [winLen                      (calculate-height)]
@@ -359,7 +359,7 @@
                                         begPos
                                         (if inc? (1+ endPos) endPos)))]
        [(eq? method #:rebuild)
-             (let* ([pw                    (playWindow #:rebuild)]
+             (let* ([pw               (playWindow #:rebuild-size)]
                     [listLen                  (length masterList)]
                     [remaining                 (- listLen begPos)]
                     [winHeight                 (calculate-height)]
@@ -538,19 +538,99 @@
       (lambda (method . xs)
         (cond
          [(eq? method #:get-height)                           height]
-         [(eq? method #:rebuild)    (write-lines window diff #f #f)
-                                    (write-lines
-                                      window
-                                      (- (getmaxy window) height)
-                                      (atomic-box-ref dBox)
-                                      #t)
-                                    (write-lines
-                                      window
-                                      (1+ (- (getmaxy window) height))
-                                      (atomic-box-ref sBox)
-                                      #t)
-                                    (play-window window stup
-                                                 sBox   dBox height)]))))
+         [(eq? method #:rebuild-play)  (write-lines window diff #f #f)
+                                       (write-lines
+                                         window
+                                         (- (getmaxy window) height)
+                                         (atomic-box-ref dBox)
+                                         #t)
+                                       (let ([stat (atomic-box-ref sBox)])
+                                         (write-lines
+                                           window
+                                           (1+ (- (getmaxy window) height))
+                                           (list (cons
+                                                   (string-append
+                                                     " ▶"
+                                                     (substring (caar stat) 2))
+                                                   (cdar stat)))
+                                           #t))
+                                       (play-window window stup
+                                                    sBox   dBox height)]
+         [(eq? method #:rebuild-pause) (write-lines window diff #f #f)
+                                       (write-lines
+                                         window
+                                         (- (getmaxy window) height)
+                                         (atomic-box-ref dBox)
+                                         #t)
+                                       (let* ([stat  (atomic-box-ref sBox)]
+                                              [state           (caar stat)])
+                                         (write-lines
+                                           window
+                                           (1+ (- (getmaxy window) height))
+                                           (list (cons
+                                                   (string-append
+                                                     (if (string=? (substring
+                                                                     state
+                                                                     0
+                                                                     2) " ▶")
+                                                         " 𝍪"
+                                                       " ▶")
+                                                     (substring state 2))
+                                                   (cdar stat)))
+                                           #t))
+                                       (play-window window stup
+                                                    sBox   dBox height)]
+         [(eq? method #:rebuild-size)  (write-lines window diff #f #f)
+                                       (write-lines
+                                         window
+                                         (- (getmaxy window) height)
+                                         (atomic-box-ref dBox)
+                                         #t)
+                                       (let* ([stat    (atomic-box-ref sBox)]
+                                              [state             (caar stat)]
+                                              [fIndex  (1+ (string-index
+                                                             state
+                                                             #\[))]
+                                              [middle  (string-index
+                                                         state
+                                                         #\>)]
+                                              [sIndex  (string-index
+                                                         state
+                                                         #\])]
+                                              [progLen     (- sIndex fIndex)]
+                                              [fRatio  (/ (if middle
+                                                              (- middle fIndex)
+                                                            0) (1- progLen))]
+                                              [newLen  (-
+                                                         (getmaxx window)
+                                                         (+
+                                                           fIndex
+                                                           (-
+                                                             (1+ (string-length
+                                                                   state))
+                                                             sIndex)))]
+                                              [newFlen (inexact->exact
+                                                         (floor
+                                                           (* fRatio newLen)))])
+                                         (write-lines
+                                           window
+                                           (1+ (- (getmaxy window) height))
+                                           (list (cons
+                                                   (string-append
+                                                     (substring state 0 fIndex)
+                                                     (string-concatenate/shared
+                                                       (make-list newFlen "="))
+                                                     ">"
+                                                     (string-concatenate/shared
+                                                       (make-list
+                                                         (- newLen (1+
+                                                                     newFlen))
+                                                         "-"))
+                                                     (substring state sIndex))
+                                                   (cdar stat)))
+                                           #t))
+                                       (play-window window stup
+                                                    sBox   dBox height)]))))
 
 
 
