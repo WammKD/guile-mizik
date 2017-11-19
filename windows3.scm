@@ -392,31 +392,41 @@
                  newBegPos
                  newEndPos))])))
 
-  (define* (play-window window runningThread aBox #:optional [height 2])
-    (define (write-lines wind windHeightDiff statusString rev?)
-      (define (write-line lineIndex lineString winLength state)
-        (addstr
-          wind
-          (string-concatenate
-            (cons lineString (make-list (- winLength (string-length
-                                                       lineString)) " ")))
-          #:y lineIndex
-          #:x 0)
+  (define* (play-window window runningThread sBox dBox #:optional [height 3])
+    (define (write-lines wind windHeightDiff statusStrings rev?)
+      (define (write-line lineIndex lineStrings winLength r?)
+        (let ([x (fold
+                   (lambda (elem ret)
+                     (addchstr wind          (inverse-on
+                                               ((cdr elem) (car elem)))
+                               #:y lineIndex #:x ret)
 
-        (chgat window -1 state 0 #:x 0 #:y lineIndex))
+                     (+ ret (string-length (car elem))))
+                   0
+                   lineStrings)])
+          (addchstr
+            wind
+            ((if r? inverse-on inverse-off)
+              (string-concatenate (make-list (if (negative? (- winLength x))
+                                                 0
+                                               (- winLength x)) " ")))
+            #:y lineIndex
+            #:x x)))
 
       (if rev?
-          (write-line windHeightDiff statusString (getmaxx wind) A_REVERSE)
+          (write-line windHeightDiff statusStrings (getmaxx wind) rev?)
         (let ([windowLength (getmaxx wind)])
           (for-each
             (lambda (lineHeight)
               (when (< lineHeight (getmaxy wind))
-                (write-line lineHeight "" windowLength A_NORMAL)))
+                (write-line lineHeight   (list (cons "" normal))
+                            windowLength rev?)))
             (iota height windHeightDiff)))))
 
-    (define (set-display win client box heightMeasurement)
+    (define (set-display win       client
+                         statusBox displayedSongBox heightMeasurement)
       (define (parse-seconds seconds)
-        (let* ([rounded        (inexact->exact (floor seconds))]
+        (let* ([rounded        (inexact->exact (round seconds))]
                [mins    (number->string (quotient  rounded 60))]
                [secs    (number->string (remainder rounded 60))])
           (string-append mins ":" (if (= (string-length secs) 1)
@@ -431,61 +441,73 @@
               [dh          (- (getmaxy win) heightMeasurement)])
           (cond
            [(string=? stateString "stop")
-                 (write-lines win dh      ""               #t)
-                 (write-lines win (1+ dh) " ▪ 0:00 / 0:00" #t)
-                 (atomic-box-set! box " ▪ 0:00 / 0:00")]
+                 (let ([status   (list (cons " ▪ 0:00 / 0:00" normal))]
+                       [dispSong (list (cons ""               normal))])
+                   (write-lines win dh      dispSong #t)
+                   (write-lines win (1+ dh) status   #t)
+                   (atomic-box-set! statusBox        status)
+                   (atomic-box-set! displayedSongBox dispSong))]
            [(string=? stateString "play")
                  (mpd-connect client)
                  (let ([song (get-mpd-response
                                (mpdStatus::current-song client))])
                    (mpd-disconnect client)
-                   (let ([status   (string-append
-                                     " ▶ "
-                                     (parse-seconds
-                                       (assoc-ref status 'elapsed))
-                                     " / "
-                                     (parse-seconds
-                                       (assoc-ref song   'Time)))]
-                         [dispSong (string-append
-                                     (assoc-ref song 'Title)
-                                     " from "
-                                     (assoc-ref song 'Album)
-                                     " by "
-                                     (assoc-ref song 'Artist))])
+                   (let ([status   (list (cons
+                                           (string-append
+                                             " ▶ "
+                                             (parse-seconds
+                                               (assoc-ref status 'elapsed))
+                                             " / "
+                                             (parse-seconds
+                                               (assoc-ref song   'Time)))
+                                           normal))]
+                         [dispSong (list
+                                     (cons " "                      normal)
+                                     (cons (assoc-ref song 'Title)  bold)
+                                     (cons " from "                 normal)
+                                     (cons (assoc-ref song 'Album)  bold)
+                                     (cons " by "                   normal)
+                                     (cons (assoc-ref song 'Artist) bold))])
                      (write-lines win dh      dispSong #t)
                      (write-lines win (1+ dh) status   #t)
-                     (atomic-box-set! box status)))]
+                     (atomic-box-set! statusBox        status)
+                     (atomic-box-set! displayedSongBox dispSong)))]
            [(string=? stateString "pause")
                  (mpd-connect client)
                  (let ([song (get-mpd-response
                                (mpdStatus::current-song client))])
                    (mpd-disconnect client)
-                   (let ([status   (string-append
-                                     " 𝍪 "
-                                     (parse-seconds
-                                       (assoc-ref status 'elapsed))
-                                     " / "
-                                     (parse-seconds
-                                       (assoc-ref song   'Time)))]
-                         [dispSong (string-append
-                                     (assoc-ref song 'Title)
-                                     " from "
-                                     (assoc-ref song 'Album)
-                                     " by "
-                                     (assoc-ref song 'Artist))])
+                   (let ([status   (list (cons
+                                           (string-append
+                                             " 𝍪 "
+                                             (parse-seconds
+                                               (assoc-ref status 'elapsed))
+                                             " / "
+                                             (parse-seconds
+                                               (assoc-ref song   'Time)))
+                                           normal))]
+                         [dispSong (list
+                                     (cons " "                      normal)
+                                     (cons (assoc-ref song 'Title)  bold)
+                                     (cons " from "                 normal)
+                                     (cons (assoc-ref song 'Album)  bold)
+                                     (cons " by "                   normal)
+                                     (cons (assoc-ref song 'Artist) bold))])
                      (write-lines win dh      dispSong #t)
                      (write-lines win (1+ dh) status   #t)
-                     (atomic-box-set! box status)))])
+                     (atomic-box-set! statusBox        status)
+                     (atomic-box-set! displayedSongBox dispSong)))])
           (refresh win)))
       (sleep 1)
-      (set-display win client box heightMeasurement))
+      (set-display win client statusBox displayedSongBox heightMeasurement))
 
     (let ([diff (- (getmaxy window) height)]
           [stup (if runningThread
                     runningThread
-                  (call-with-new-thread (lambda ()
-                                          (set-display window (new-mpd-client)
-                                                       aBox   height))))])
+                  (call-with-new-thread
+                    (lambda ()
+                      (set-display window (new-mpd-client)
+                                   sBox   dBox             height))))])
 
       (lambda (method . xs)
         (cond
@@ -494,12 +516,19 @@
                                     (write-lines
                                       window
                                       (- (getmaxy window) height)
-                                      (atomic-box-ref aBox)
+                                      (atomic-box-ref dBox)
                                       #t)
-                                    (play-window window stup aBox height)]))))
+                                    (write-lines
+                                      window
+                                      (1+ (- (getmaxy window) height))
+                                      (atomic-box-ref sBox)
+                                      #t)
+                                    (play-window window stup
+                                                 sBox   dBox height)]))))
 
 
 
-  (columned-window win (play-window   win #f (make-atomic-box "") 3)
-                   '() (build-columns win #f captions             #f)
-                   0   0                                              0))
+  (columned-window
+    win (play-window   win #f (make-atomic-box "") (make-atomic-box ""))
+    '() (build-columns win #f captions             #f)
+    0   0                                                                0))
