@@ -442,7 +442,8 @@
           (string-append
             eString
             " ["
-            (string-concatenate/shared (make-list firstLen "="))
+            (string-concatenate/shared
+              (make-list (pos-or-to-zero firstLen)                "="))
             (if stopped? "-" ">")
             (string-concatenate/shared
               (make-list (pos-or-to-zero (- totalLen firstLen 1)) "-"))
@@ -621,21 +622,22 @@
                                          (write-lines
                                            window
                                            (1+ (- (getmaxy window) height))
-                                           (list (cons
-                                                   (string-append
-                                                     (substring state 0 fIndex)
-                                                     (string-concatenate/shared
-                                                       (make-list newFlen "="))
-                                                     (if middle ">" "-")
-                                                     (string-concatenate/shared
-                                                       (make-list
-                                                         (pos-or-to-zero
-                                                           (-
-                                                             newLen
-                                                             (1+ newFlen)))
-                                                         "-"))
-                                                     (substring state sIndex))
-                                                   (cdar stat)))
+                                           (list
+                                             (cons
+                                               (string-append
+                                                 (substring state 0 fIndex)
+                                                 (string-concatenate/shared
+                                                   (make-list
+                                                     (pos-or-to-zero newFlen)
+                                                     "="))
+                                                 (if middle ">" "-")
+                                                 (string-concatenate/shared
+                                                   (make-list
+                                                     (pos-or-to-zero
+                                                       (- newLen (1+ newFlen)))
+                                                     "-"))
+                                                 (substring state sIndex))
+                                               (cdar stat)))
                                            #t))
                                        (play-window window stup
                                                     sBox   dBox height)]))))
