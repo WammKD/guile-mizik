@@ -426,22 +426,24 @@
 
     (define (set-display win       client
                          statusBox displayedSongBox heightMeasurement)
-      (define (calc-progress-bar elapsed totalTime)
-        (let* ([remaining                         (- totalTime elapsed)]
-               [eString                       (parse-seconds   elapsed)]
-               [rString                       (parse-seconds remaining)]
-               [tString                       (parse-seconds totalTime)]
-               [totalLen                  (- (getmaxx win)           3
-                                             (string-length eString) 4
-                                             (string-length rString) 3
-                                             (string-length tString) 1)]
-               [firstLen  (inexact->exact
-                            (floor (* (/ elapsed totalTime) totalLen)))])
+      (define (calc-progress-bar elapsed totalTime stopped?)
+        (let* ([remaining                            (- totalTime elapsed)]
+               [eString                          (parse-seconds   elapsed)]
+               [rString                          (parse-seconds remaining)]
+               [tString                          (parse-seconds totalTime)]
+               [totalLen                     (- (getmaxx win)           3
+                                                (string-length eString) 4
+                                                (string-length rString) 3
+                                                (string-length tString) 1)]
+               [firstLen  (if (zero? totalTime)
+                              0
+                            (inexact->exact
+                              (floor (* (/ elapsed totalTime) totalLen))))])
           (string-append
             eString
             " ["
             (string-concatenate/shared (make-list firstLen "="))
-            ">"
+            (if stopped? "-" ">")
             (string-concatenate/shared
               (make-list (pos-or-to-zero (- totalLen firstLen 1)) "-"))
             "] "
@@ -465,11 +467,8 @@
           (cond
            [(string=? stateString "stop")
                  (let ([status   (list (cons (string-append
-                                               " ▪ 0:00 ["
-                                               (string-concatenate/shared
-                                                 (make-list (- (getmaxx
-                                                                 win) 23) "-"))
-                                               "] 0:00 / 0:00") normal))]
+                                               " ▪ "
+                                               (calc-progress-bar 0 0 #t)) normal))]
                        [dispSong (list (cons ""                 normal))])
                    (write-lines win dh      dispSong #t)
                    (write-lines win (1+ dh) status   #t)
@@ -485,7 +484,8 @@
                                              " ▶ "
                                              (calc-progress-bar
                                                (assoc-ref status 'elapsed)
-                                               (assoc-ref song   'Time)))
+                                               (assoc-ref song   'Time)
+                                               #f))
                                            normal))]
                          [dispSong (list
                                      (cons " "                      normal)
@@ -537,7 +537,7 @@
 
       (lambda (method . xs)
         (cond
-         [(eq? method #:get-height)                           height]
+         [(eq? method #:get-height)                              height]
          [(eq? method #:rebuild-play)  (write-lines window diff #f #f)
                                        (write-lines
                                          window
@@ -563,20 +563,20 @@
                                          (atomic-box-ref dBox)
                                          #t)
                                        (let* ([stat  (atomic-box-ref sBox)]
-                                              [state           (caar stat)])
+                                              [state           (caar stat)]
+                                              [sym   (substring state 0 2)])
                                          (write-lines
                                            window
                                            (1+ (- (getmaxy window) height))
-                                           (list (cons
-                                                   (string-append
-                                                     (if (string=? (substring
-                                                                     state
-                                                                     0
-                                                                     2) " ▶")
-                                                         " 𝍪"
-                                                       " ▶")
-                                                     (substring state 2))
-                                                   (cdar stat)))
+                                           (list
+                                             (cons
+                                               (string-append
+                                                 (cond
+                                                  [(string=? sym " 𝍪") " ▶"]
+                                                  [(string=? sym " ▶") " 𝍪"]
+                                                  [else                " ▪"])
+                                                 (substring state 2))
+                                               (cdar stat)))
                                            #t))
                                        (play-window window stup
                                                     sBox   dBox height)]
@@ -598,9 +598,14 @@
                                                          state
                                                          #\])]
                                               [progLen     (- sIndex fIndex)]
-                                              [fRatio  (/ (if middle
-                                                              (- middle fIndex)
-                                                            0) (1- progLen))]
+                                              [fRatio  (/
+                                                         (if middle
+                                                             (- middle fIndex)
+                                                           0)
+                                                         ;; Avoid divide by 0
+                                                         (if (< progLen 2)
+                                                             1
+                                                           (1- progLen)))]
                                               [newLen  (-
                                                          (getmaxx window)
                                                          (+
@@ -621,11 +626,13 @@
                                                      (substring state 0 fIndex)
                                                      (string-concatenate/shared
                                                        (make-list newFlen "="))
-                                                     ">"
+                                                     (if middle ">" "-")
                                                      (string-concatenate/shared
                                                        (make-list
-                                                         (- newLen (1+
-                                                                     newFlen))
+                                                         (pos-or-to-zero
+                                                           (-
+                                                             newLen
+                                                             (1+ newFlen)))
                                                          "-"))
                                                      (substring state sIndex))
                                                    (cdar stat)))
