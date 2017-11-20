@@ -50,8 +50,48 @@
                                  'directory))
 
                              (let loop ([w (windows::build-columned-window
-                                             stdscr  client   "Track" "Title"
-                                             "Genre" "Artist" "Album" "Time")]
+                                             stdscr
+                                             client
+                                             (cons
+                                               "Track"
+                                               (lambda (track)
+                                                 (let ([index (string-index
+                                                                track
+                                                                #\/)])
+                                                   (if index
+                                                       (substring
+                                                         track
+                                                         0
+                                                         index)
+                                                     track))))
+                                             (cons "Title"  (lambda (title)
+                                                              title))
+                                             (cons "Genre"  (lambda (genre)
+                                                              genre))
+                                             (cons "Artist" (lambda (artist)
+                                                              artist))
+                                             (cons "Album"  (lambda (album)
+                                                              album))
+                                             (cons
+                                               "Time"
+                                               (lambda (time)
+                                                 (let* ([r (inexact->exact
+                                                             (round
+                                                               (string->number
+                                                                 time)))]
+                                                        [m (number->string
+                                                             (quotient r 60))]
+                                                        [s (number->string
+                                                             (remainder
+                                                               r
+                                                               60))])
+                                                   (string-append
+                                                     m
+                                                     ":"
+                                                     (if (= (string-length
+                                                              s) 1)
+                                                         (string-append "0" s)
+                                                       s))))))]
                                         [s (get-mpd-response
                                              (mpdPlaylistCurrent::playlist-info
                                                client))])

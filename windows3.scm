@@ -35,7 +35,7 @@
                             -1
                           (fold
                             (lambda (elem ret)
-                              (+ (* (string-length elem) 1.0) ret))
+                              (+ (* (string-length (car elem)) 1.0) ret))
                             0
                             columnsOrCaptions))])
       (let loop ([result                '()]
@@ -48,35 +48,36 @@
                                                 offset
                                                 (- windowWidth offset)
                                                 playWinHt)
-                             (column
-                               wind
-                               (car current)
-                               '()
-                               offset
-                               (- windowWidth offset))) result))
+                             (let ([cc (car current)])
+                               (column
+                                 wind
+                                 (cdr cc)
+                                 (car cc)
+                                 '()
+                                 offset
+                                 (- windowWidth offset)))) result))
           (let* ([cc  (car current)]
                  [col (if elements
                           (cc #:rebuild-with-size elements offset #f playWinHt)
-                        (column
-                          wind
-                          cc
-                          '()
-                          offset
-                          (/ (string-length cc) captionTotal)))])
+                        (let ([ccs (car cc)])
+                          (column wind (cdr cc) ccs
+                                  '()  offset   (/ (string-length
+                                                     ccs) captionTotal))))])
             (loop
               (cons col result)
               (cdr current)
               (+ (col #:get-width) offset)))))))
 
-  (define* (column window header lines offset percentage #:optional
-                                                           [refinedLines #f]
-                                                           [formatHeader #f]
-                                                           [formatted    #f])
+  (define* (column window function header
+                   lines  offset   percentage #:optional [refinedLines #f]
+                                                         [formatHeader #f]
+                                                         [formatted    #f])
     (define body        (if refinedLines
                             refinedLines
                           (map
                             (lambda (line)
-                              (assoc-ref line (string->symbol header)))
+                              (function
+                                (assoc-ref line (string->symbol header))))
                             lines)))
     (define columnWidth (if (exact? percentage)
                             percentage
@@ -148,6 +149,7 @@
 
                                              (column
                                                window
+                                               function
                                                header
                                                (append
                                                  (: lines 0     index)
@@ -163,7 +165,7 @@
                                                (append
                                                  (: newLines 0 index)
                                                  (list (format-and-add
-                                                         refLine
+                                                         (function refLine)
                                                          (1+ index)))
                                                  (let ([sub (:
                                                               body
@@ -177,6 +179,7 @@
                                                        (2+ index)))))))]
          [(eq? method #:rebuild)           (column
                                              window
+                                             function
                                              header
                                              (car xs)
                                              offset
@@ -187,6 +190,7 @@
 
                                            (column
                                              window
+                                             function
                                              header
                                              (car  xs)
                                              (cadr xs)
