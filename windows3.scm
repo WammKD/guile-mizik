@@ -395,6 +395,36 @@
                  newEndPos))])))
 
   (define* (play-window window runningThread sBox dBox #:optional [height 3])
+    (define (calc-progBar-from-prev win currSym box)
+      (let* ([winSize          (getmaxx win)]
+             [statePair (atomic-box-ref box)]
+             [prevState     (caar statePair)])
+        (if (= winSize (1+ (string-length prevState)))
+            (list (cons (string-append currSym (substring prevState 2)) (cdar statePair)))
+          (let* ([fIndex             (1+ (string-index prevState #\[))]
+                 [middle                 (string-index prevState #\>) ]
+                 [sIndex                 (string-index prevState #\]) ]
+                 [progLen                            (- sIndex fIndex)]
+                 [fRatio          (/
+                                    (if middle (- middle fIndex) 0)
+                                    ;; Avoid divide by 0
+                                    (if (< progLen 2) 1 (1- progLen)))]
+                 [newLen    (-
+                              (getmaxx win)
+                              (+ fIndex (- (1+ (string-length
+                                                 prevState)) sIndex)))]
+                 [newFlen   (inexact->exact (floor (* fRatio newLen)))])
+            (list (cons (string-append
+                          currSym
+                          (substring prevState 2 fIndex)
+                          (string-concatenate/shared
+                           (make-list (pos-or-to-zero newFlen)   "="))
+                          (if middle ">" "-")
+                          (string-concatenate/shared
+                            (make-list (pos-or-to-zero
+                                         (- newLen (1+ newFlen))) "-"))
+                          (substring prevState sIndex)) (cdar statePair)))))))
+
     (define (write-lines wind windHeightDiff statusStrings rev?)
       (define (write-line lineIndex lineStrings winLength r?)
         (let ([x (fold
@@ -500,30 +530,11 @@
                      (atomic-box-set! statusBox        status)
                      (atomic-box-set! displayedSongBox dispSong)))]
            [(string=? stateString "pause")
-                 (mpd-connect client)
-                 (let ([song (get-mpd-response
-                               (mpdStatus::current-song client))])
-                   (mpd-disconnect client)
-                   (let ([status   (list (cons
-                                           (string-append
-                                             " 𝍪 "
-                                             (parse-seconds
-                                               (assoc-ref status 'elapsed))
-                                             " / "
-                                             (parse-seconds
-                                               (assoc-ref song   'Time)))
-                                           normal))]
-                         [dispSong (list
-                                     (cons " "                      normal)
-                                     (cons (assoc-ref song 'Title)  bold)
-                                     (cons " from "                 normal)
-                                     (cons (assoc-ref song 'Album)  bold)
-                                     (cons " by "                   normal)
-                                     (cons (assoc-ref song 'Artist) bold))])
-                     (write-lines win dh      dispSong #t)
-                     (write-lines win (1+ dh) status   #t)
-                     (atomic-box-set! statusBox        status)
-                     (atomic-box-set! displayedSongBox dispSong)))])
+                 (let ([status (calc-progBar-from-prev win " 𝍪" statusBox)])
+                   (write-lines win dh      (atomic-box-ref
+                                              displayedSongBox) #t)
+                   (write-lines win (1+ dh) status              #t)
+                   (atomic-box-set! statusBox        status))])
           (refresh win)))
       (sleep 1)
       (set-display win client statusBox displayedSongBox heightMeasurement))
@@ -587,58 +598,15 @@
                                          (- (getmaxy window) height)
                                          (atomic-box-ref dBox)
                                          #t)
-                                       (let* ([stat    (atomic-box-ref sBox)]
-                                              [state             (caar stat)]
-                                              [fIndex  (1+ (string-index
-                                                             state
-                                                             #\[))]
-                                              [middle  (string-index
-                                                         state
-                                                         #\>)]
-                                              [sIndex  (string-index
-                                                         state
-                                                         #\])]
-                                              [progLen     (- sIndex fIndex)]
-                                              [fRatio  (/
-                                                         (if middle
-                                                             (- middle fIndex)
-                                                           0)
-                                                         ;; Avoid divide by 0
-                                                         (if (< progLen 2)
-                                                             1
-                                                           (1- progLen)))]
-                                              [newLen  (-
-                                                         (getmaxx window)
-                                                         (+
-                                                           fIndex
-                                                           (-
-                                                             (1+ (string-length
-                                                                   state))
-                                                             sIndex)))]
-                                              [newFlen  (inexact->exact
-                                                          (floor (*
-                                                                   fRatio
-                                                                   newLen)))])
-                                         (write-lines
+                                       (write-lines
+                                         window
+                                         (1+ (- (getmaxy window) height))
+                                         (calc-progBar-from-prev
                                            window
-                                           (1+ (- (getmaxy window) height))
-                                           (list
-                                             (cons
-                                               (string-append
-                                                 (substring state 0 fIndex)
-                                                 (string-concatenate/shared
-                                                   (make-list
-                                                     (pos-or-to-zero newFlen)
-                                                     "="))
-                                                 (if middle ">" "-")
-                                                 (string-concatenate/shared
-                                                   (make-list
-                                                     (pos-or-to-zero
-                                                       (- newLen (1+ newFlen)))
-                                                     "-"))
-                                                 (substring state sIndex))
-                                               (cdar stat)))
-                                           #t))
+                                           (substring (caar (atomic-box-ref
+                                                              sBox)) 0 2)
+                                           sBox)
+                                         #t)
                                        (play-window window stup
                                                     sBox   dBox height)]))))
 
