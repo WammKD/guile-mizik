@@ -106,10 +106,7 @@
                                 (substring line 0 (2- columnWidth))
                                 ELLIPSIS
                                 " ")]
-         [else                (string-concatenate/shared
-                                (cons line (make-list
-                                             (- columnWidth lineLength)
-                                             " ")))])))
+         [else                                        line])))
     (define (format-and-add line index)
       (let ([newLine (calc-new-line line)])
         (addstr window newLine #:y index #:x offset)
@@ -315,6 +312,11 @@
                                                     (1- winLen))))
                                            endPos
                                          (+ endPos (car xs)))])
+                        (for-each
+                          (lambda (lineIndex)
+                            (move window lineIndex 0)
+                            (clrtoeol window))
+                          (iota lastVisibleLineOfWin 1))
                         (columned-window
                           window
                           playWindow
@@ -363,6 +365,9 @@
                                         begPos
                                         (if inc? (1+ endPos) endPos)))]
        [(eq? method #:rebuild)
+             (for-each (lambda (lineIndex)
+                         (move window lineIndex 0)
+                         (clrtoeol window)) (iota (1+ (- endPos begPos)) 0))
              (let* ([pw               (playWindow #:rebuild-size)]
                     [listLen                  (length masterList)]
                     [remaining                 (- listLen begPos)]
@@ -450,13 +455,11 @@
 
       (if rev?
           (write-line windHeightDiff statusStrings (getmaxx wind) rev?)
-        (let ([windowLength (getmaxx wind)])
-          (for-each
-            (lambda (lineHeight)
-              (when (< lineHeight (getmaxy wind))
-                (write-line lineHeight   (list (cons "" normal))
-                            windowLength rev?)))
-            (iota height windHeightDiff)))))
+        (for-each
+          (lambda (lineIndex)
+            (move window lineIndex 0)
+            (clrtoeol window))
+          (iota height windHeightDiff))))
 
     (define (set-display win       client
                          statusBox displayedSongBox heightMeasurement)
