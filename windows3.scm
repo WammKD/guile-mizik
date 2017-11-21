@@ -206,6 +206,8 @@
         (error highlightPos)
       (chgat window -1 A_REVERSE 0 #:x 0 #:y highlightPos))
 
+    (refresh window)
+
     (lambda (method . xs)
       (cond
        [(eq? method #:get-window)              window]
@@ -365,9 +367,7 @@
                                         begPos
                                         (if inc? (1+ endPos) endPos)))]
        [(eq? method #:rebuild)
-             (for-each (lambda (lineIndex)
-                         (move window lineIndex 0)
-                         (clrtoeol window)) (iota (1+ (- endPos begPos)) 0))
+             (erase window)
              (let* ([pw               (playWindow #:rebuild-size)]
                     [listLen                  (length masterList)]
                     [remaining                 (- listLen begPos)]
@@ -599,7 +599,7 @@
                                            #t))
                                        (play-window window stup
                                                     sBox   dBox height)]
-         [(eq? method #:rebuild-size)  (write-lines window diff #f #f)
+         [(eq? method #:rebuild-size)  ;; (write-lines window diff #f #f)
                                        (write-lines
                                          window
                                          (- (getmaxy window) height)

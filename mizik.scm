@@ -113,7 +113,6 @@
                                    (cdr s)))))]
            [pastDimensions (getmaxyx stdscr)])
     (let [(newPastDimensions (mainWindow #:get-max-y-x))]
-      (mainWindow #:refresh)
 
       (let* ([newWin (if (not (equal?
                                 (mainWindow #:get-max-y-x)
