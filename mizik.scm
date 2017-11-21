@@ -112,51 +112,36 @@
                                         #f)
                                    (cdr s)))))]
            [pastDimensions (getmaxyx stdscr)])
-    (let [(newPastDimensions (mainWindow #:get-max-y-x))]
-
-      (let* ([newWin (if (not (equal?
-                                (mainWindow #:get-max-y-x)
-                                pastDimensions))
-                         (mainWindow #:rebuild)
-                       mainWindow)]
-             [char   (getch (newWin #:get-window))])
-        (cond
-         ;; [(equal? char #\a)       (main
-         ;;                            (newWin #:add-new-line (car d) #f)
-         ;;                            newPastDimensions
-         ;;                            (cdr d))]
-         ;; [(equal? char #\i)       (main
-         ;;                            (newWin #:add-new-line (car d) 5)
-         ;;                            newPastDimensions
-         ;;                            (cdr d))]
-         [(equal? char KEY_NPAGE)    (main
-                                       (newWin #:move-cursor  10)
-                                       newPastDimensions)]
-         [(equal? char #\n)          (main
-                                       (newWin #:move-cursor  3)
-                                       newPastDimensions)]
-         [(equal? char KEY_DOWN)     (main
-                                       (newWin #:move-cursor  1)
-                                       newPastDimensions)]
-         [(equal? char KEY_PPAGE)    (main
-                                       (newWin #:move-cursor -10)
-                                       newPastDimensions)]
-         [(equal? char #\p)          (main
-                                       (newWin #:move-cursor -3)
-                                       newPastDimensions)]
-         [(equal? char KEY_UP)       (main
-                                       (newWin #:move-cursor -1)
-                                       newPastDimensions)]
-         [(or
-            (equal? char #\b)
-            (equal? char 13)
-            (equal? char 10)
-            (equal? char KEY_ENTER)
-            (equal? char #\newline)) (newWin #:play        client)
-                                     (main newWin newPastDimensions)]
-         [(equal? char #\space)      (newWin #:toggle-play client)
-                                     (main newWin newPastDimensions)]
-         [(not (equal? char #\q))    (main newWin newPastDimensions)]))))
+  (let* ([newPD  (mainWindow #:get-max-y-x)]
+         [newWin (if (not (equal? (mainWindow #:get-max-y-x) pastDimensions))
+                     (mainWindow #:rebuild)
+                   mainWindow)]
+         [char   (getch (newWin #:get-window))])
+    (cond
+     ;; [(equal? char #\a)       (main
+     ;;                            (newWin #:add-new-line (car d) #f)
+     ;;                            newPD
+     ;;                            (cdr d))]
+     ;; [(equal? char #\i)       (main
+     ;;                            (newWin #:add-new-line (car d) 5)
+     ;;                            newPD
+     ;;                            (cdr d))]
+     [(equal? char KEY_NPAGE)    (main (newWin #:move-cursor  10) newPD)]
+     [(equal? char #\n)          (main (newWin #:move-cursor  3)  newPD)]
+     [(equal? char KEY_DOWN)     (main (newWin #:move-cursor  1)  newPD)]
+     [(equal? char KEY_PPAGE)    (main (newWin #:move-cursor -10) newPD)]
+     [(equal? char #\p)          (main (newWin #:move-cursor -3)  newPD)]
+     [(equal? char KEY_UP)       (main (newWin #:move-cursor -1)  newPD)]
+     [(or
+        (equal? char #\b)
+        (equal? char 13)
+        (equal? char 10)
+        (equal? char KEY_ENTER)
+        (equal? char #\newline)) (newWin #:play        client)
+                                 (main newWin newPD)]
+     [(equal? char #\space)      (newWin #:toggle-play client)
+                                 (main newWin newPD)]
+     [(not (equal? char #\q))    (main newWin newPD)])))
 
 (endwin)
 
