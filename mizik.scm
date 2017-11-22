@@ -66,8 +66,6 @@
                                                      track))))
                                              (cons "Title"  (lambda (title)
                                                               title))
-                                             (cons "Genre"  (lambda (genre)
-                                                              genre))
                                              (cons "Artist" (lambda (artist)
                                                               artist))
                                              (cons "Album"  (lambda (album)
@@ -91,7 +89,9 @@
                                                      (if (= (string-length
                                                               s) 1)
                                                          (string-append "0" s)
-                                                       s))))))]
+                                                       s)))))
+                                             (cons "Genre"  (lambda (genre)
+                                                              genre)))]
                                         [s (get-mpd-response
                                              (mpdPlaylistCurrent::playlist-info
                                                client))])
