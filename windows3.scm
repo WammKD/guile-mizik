@@ -286,13 +286,16 @@
                           (1- winLen)))]
                 [(and
                    (> newPos lastVisibleLineOfWin)
-                   (> (+ begPos highlightPos (car xs)) listLen))
+                   (> (+ begPos newPos) listLen))
                       (let ([newBegPos (if (< (- listLen begPos) (1- winLen))
                                            begPos
                                          (- listLen (1- winLen)))]
-                            [newEndPos (if (< (- listLen begPos) (1- winLen))
-                                           listLen
-                                         (2+ winLen))])
+                            [newEndPos listLen])
+                        (for-each
+                          (lambda (lineIndex)
+                            (move window lineIndex 0)
+                            (clrtoeol window))
+                          (iota lastVisibleLineOfWin 1))
                         (columned-window
                           window
                           playWindow
@@ -303,6 +306,30 @@
                                      (: masterList newBegPos newEndPos)))
                             allColumns)
                           (- newEndPos newBegPos)
+                          newBegPos
+                          newEndPos))]
+                [(and
+                   (> newPos lastVisibleLineOfWin)
+                   (< (- listLen (+ begPos (car xs))) (1- winLen)))
+                      (let ([newBegPos (if (< (- listLen begPos) (1- winLen))
+                                           begPos
+                                         (- listLen (1- winLen)))]
+                            [newEndPos listLen])
+                        (for-each
+                          (lambda (lineIndex)
+                            (move window lineIndex 0)
+                            (clrtoeol window))
+                          (iota lastVisibleLineOfWin 1))
+                        (columned-window
+                          window
+                          playWindow
+                          masterList
+                          (map
+                            (lambda (col)
+                              (col #:rebuild
+                                     (: masterList newBegPos newEndPos)))
+                            allColumns)
+                          (- winLen (- listLen (+ (1- begPos) newPos)))
                           newBegPos
                           newEndPos))]
                 [(or (< newPos 1) (> newPos lastVisibleLineOfWin))
@@ -342,7 +369,7 @@
                                                         (>= index begPos)
                                                         (<
                                                           (- index begPos)
-                                                          winHeight))]
+                                                          (1- winHeight)))]
                                            [inc?      (<
                                                         (- masterLen begPos)
                                                         (1- winHeight))])
