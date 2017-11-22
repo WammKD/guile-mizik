@@ -29,6 +29,10 @@
                               startIndex))))))
 
 (define (windows::build-columned-window win mpd . captions)
+  (define (clear-lines win numberOfLines startingIndex)
+    (for-each (lambda (lineIndex)
+                (move win lineIndex 0)
+                (clrtoeol win)) (iota numberOfLines startingIndex)))
   (define (build-columns wind elements columnsOrCaptions playWinHt)
     (let ([windowWidth  (getmaxx wind)]
           [captionTotal (if elements
@@ -271,6 +275,7 @@
                                        masterList   allColumns
                                        highlightPos begPos     endPos)]
                 [(and (< newPos 1) (< (+ begPos (car xs)) 0))
+                      (clear-lines window lastVisibleLineOfWin 1)
                       (columned-window
                         window
                         playWindow
@@ -291,11 +296,7 @@
                                            begPos
                                          (- listLen (1- winLen)))]
                             [newEndPos listLen])
-                        (for-each
-                          (lambda (lineIndex)
-                            (move window lineIndex 0)
-                            (clrtoeol window))
-                          (iota lastVisibleLineOfWin 1))
+                        (clear-lines window lastVisibleLineOfWin 1)
                         (columned-window
                           window
                           playWindow
@@ -315,11 +316,7 @@
                                            begPos
                                          (- listLen (1- winLen)))]
                             [newEndPos listLen])
-                        (for-each
-                          (lambda (lineIndex)
-                            (move window lineIndex 0)
-                            (clrtoeol window))
-                          (iota lastVisibleLineOfWin 1))
+                        (clear-lines window lastVisibleLineOfWin 1)
                         (columned-window
                           window
                           playWindow
@@ -341,11 +338,7 @@
                                                     (1- winLen))))
                                            endPos
                                          (+ endPos (car xs)))])
-                        (for-each
-                          (lambda (lineIndex)
-                            (move window lineIndex 0)
-                            (clrtoeol window))
-                          (iota lastVisibleLineOfWin 1))
+                        (clear-lines window lastVisibleLineOfWin 1)
                         (columned-window
                           window
                           playWindow
@@ -482,11 +475,7 @@
 
       (if rev?
           (write-line windHeightDiff statusStrings (getmaxx wind) rev?)
-        (for-each
-          (lambda (lineIndex)
-            (move window lineIndex 0)
-            (clrtoeol window))
-          (iota height windHeightDiff))))
+        (clear-lines wind height windHeightDiff)))
 
     (define (set-display win       client
                          statusBox displayedSongBox heightMeasurement)
