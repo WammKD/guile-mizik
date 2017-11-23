@@ -141,6 +141,56 @@
                                  (main newWin newPD)]
      [(equal? char #\space)      (newWin #:toggle-play client)
                                  (main newWin newPD)]
+     [(equal? char #\esc)        (nodelay! (newWin #:get-window) #t)
+                                 (let* ([w (newWin #:get-window)]
+                                        [c             (getch w)])
+                                   ;; If false, the user just pressed ESC
+                                   (if c
+                                       (begin
+                                         (nodelay! w #f)
+
+                                         (when (and
+                                                 (equal? c         #\[)
+                                                 (equal? (getch w) #\1)
+                                                 (equal? (getch w) #\;))
+                                           (let ([newC (getch w)])
+                                             (cond
+                                              ;; Shift
+                                              [(equal? newC #\2)
+                                                    (let ([nnC (getch w)])
+                                                      (cond
+                                                       [(equal? nnC #\C)
+                                                             (newWin #:seek client "+5")]
+                                                       [(equal? nnC #\D)
+                                                             (newWin #:seek client "-5")]))]
+                                              ;; Alt
+                                              [(equal? newC #\3) ]
+                                              ;; Alt + Shift
+                                              [(equal? newC #\4) ]
+                                              ;; Ctrl
+                                              [(equal? newC #\5)
+                                                    (let ([nnC (getch w)])
+                                                      (cond
+                                                       [(equal? nnC #\C)
+                                                             (newWin #:seek client "+60")]
+                                                       [(equal? nnC #\D)
+                                                             (newWin #:seek client "-60")]))]
+                                              ;; Ctrl + Shift
+                                              [(equal? newC #\6)
+                                                    (let ([nnC (getch w)])
+                                                      (cond
+                                                       [(equal? nnC #\C)
+                                                             (newWin #:seek client "+10")]
+                                                       [(equal? nnC #\D)
+                                                             (newWin #:seek client "-10")]))]
+                                              ;; Ctrl + Alt
+                                              [(equal? newC #\7) ]
+                                              ;; Ctrl + Shift + Alt
+                                              [(equal? newC #\8) ])))
+
+                                         (main newWin newPD))
+                                     ;; Escape key, only
+                                     (main newWin newPD)))]
      [(not (equal? char #\q))    (main newWin newPD)])))
 
 (endwin)

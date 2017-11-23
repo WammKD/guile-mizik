@@ -237,6 +237,9 @@
                                       (mpdPlaybackControl::pause client #f))
                                     (mpd-disconnect (car xs))
                                     (playWindow #:rebuild-pause (car xs))]
+       [(eq? method #:seek)         (mpd-connect (car xs))
+                                    (mpdPlaybackControl::seek-current (car xs) (cadr xs))
+                                    (mpd-disconnect (car xs))]
        [(eq? method #:move-cursor)
              (let ([newPos               (+ highlightPos (car xs))]
                    [winLen                      (calculate-height)]
