@@ -200,7 +200,7 @@
                                                    perc
                                                  percentage)))]))))
 
-  (define (columned-window window     playWindow   masterList
+  (define (columned-window window     playWindow   mpdClient  masterList
                            allColumns highlightPos begPos     endPos)
     (define (calculate-height)
       (- (getmaxy window) (playWindow #:get-height)))
@@ -226,17 +226,19 @@
                                         (+ begPos (1- highlightPos)))
                                       (mpd-disconnect (car xs))
                                       (playWindow #:rebuild-play (car xs)))]
-       [(eq? method #:toggle-play)  (mpd-connect (car xs))
+       [(eq? method #:toggle-play)  (mpd-connect mpdClient)
                                     (if (string=?
                                           (assoc-ref
                                             (get-mpd-response
-                                              (mpdStatus::status client))
+                                              (mpdStatus::status mpdClient))
                                             'state)
                                           "play")
-                                        (mpdPlaybackControl::pause client #t)
-                                      (mpdPlaybackControl::pause client #f))
-                                    (mpd-disconnect (car xs))
-                                    (playWindow #:rebuild-pause (car xs))]
+                                        (mpdPlaybackControl::pause
+                                          mpdClient
+                                          #t)
+                                      (mpdPlaybackControl::pause mpdClient #f))
+                                    (mpd-disconnect mpdClient)
+                                    (playWindow #:rebuild-pause mpdClient)]
        [(eq? method #:seek)         (mpd-connect (car xs))
                                     (mpdPlaybackControl::seek-current (car xs) (cadr xs))
                                     (mpd-disconnect (car xs))]
@@ -253,6 +255,7 @@
                       (columned-window
                         window
                         playWindow
+                        mpdClient
                         masterList
                         allColumns
                         (if (and (negative? newPos) (zero? highlightPos))
@@ -274,14 +277,16 @@
                    (and
                      (< newPos       0)
                      (= highlightPos 0)))
-                      (columned-window window       playWindow
-                                       masterList   allColumns
-                                       highlightPos begPos     endPos)]
+                      (columned-window window     playWindow
+                                       mpdClient  masterList
+                                       allColumns highlightPos
+                                       begPos     endPos)]
                 [(and (< newPos 1) (< (+ begPos (car xs)) 0))
                       (clear-lines window lastVisibleLineOfWin 1)
                       (columned-window
                         window
                         playWindow
+                        mpdClient
                         masterList
                         (map
                           (lambda (col)
@@ -303,6 +308,7 @@
                         (columned-window
                           window
                           playWindow
+                          mpdClient
                           masterList
                           (map
                             (lambda (col)
@@ -323,6 +329,7 @@
                         (columned-window
                           window
                           playWindow
+                          mpdClient
                           masterList
                           (map
                             (lambda (col)
@@ -345,6 +352,7 @@
                         (columned-window
                           window
                           playWindow
+                          mpdClient
                           masterList
                           (map
                             (lambda (col)
@@ -372,6 +380,7 @@
                                       (columned-window
                                         window
                                         playWindow
+                                        mpdClient
                                         (append
                                           (: masterList 0 index)
                                           (list line)
@@ -414,6 +423,7 @@
                (columned-window
                  window
                  pw
+                 mpdClient
                  masterList
                  (build-columns
                    window
@@ -639,6 +649,11 @@
 
 
   (columned-window
-    win (play-window   win #f (make-atomic-box "") (make-atomic-box ""))
-    '() (build-columns win #f captions             #f)
-    0   0                                                                0))
+    win
+    (play-window   win #f (make-atomic-box "") (make-atomic-box ""))
+    mpd
+    '()
+    (build-columns win #f captions             #f)
+    0
+    0
+    0))

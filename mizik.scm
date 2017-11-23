@@ -51,7 +51,7 @@
 
                              (let loop ([w (windows::build-columned-window
                                              stdscr
-                                             client
+                                             (new-mpd-client)
                                              (cons
                                                "Track"
                                                (lambda (track)
@@ -133,13 +133,12 @@
      [(equal? char #\p)          (main (newWin #:move-cursor -3)  newPD)]
      [(equal? char KEY_UP)       (main (newWin #:move-cursor -1)  newPD)]
      [(or
-        (equal? char #\b)
         (equal? char 13)
         (equal? char 10)
         (equal? char KEY_ENTER)
         (equal? char #\newline)) (newWin #:play        client)
                                  (main newWin newPD)]
-     [(equal? char #\space)      (newWin #:toggle-play client)
+     [(equal? char #\space)      (newWin #:toggle-play)
                                  (main newWin newPD)]
      [(equal? char #\esc)        (nodelay! (newWin #:get-window) #t)
                                  (let* ([w (newWin #:get-window)]
