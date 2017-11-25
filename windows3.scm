@@ -220,12 +220,12 @@
        [(eq? method #:get-max-x)    (getmaxx  window)]
        [(eq? method #:refresh)      (refresh  window)]
        [(eq? method #:play)         (when (> highlightPos 0)
-                                      (mpd-connect (car xs))
+                                      (mpd-connect mpdClient)
                                       (mpdPlaybackControl::play
-                                        (car xs)
+                                        mpdClient
                                         (+ begPos (1- highlightPos)))
-                                      (mpd-disconnect (car xs))
-                                      (playWindow #:rebuild-play (car xs)))]
+                                      (mpd-disconnect mpdClient)
+                                      (playWindow #:rebuild-play mpdClient))]
        [(eq? method #:toggle-play)  (mpd-connect mpdClient)
                                     (if (string=?
                                           (assoc-ref
@@ -239,9 +239,11 @@
                                       (mpdPlaybackControl::pause mpdClient #f))
                                     (mpd-disconnect mpdClient)
                                     (playWindow #:rebuild-pause mpdClient)]
-       [(eq? method #:seek)         (mpd-connect (car xs))
-                                    (mpdPlaybackControl::seek-current (car xs) (cadr xs))
-                                    (mpd-disconnect (car xs))]
+       [(eq? method #:seek)         (mpd-connect mpdClient)
+                                    (mpdPlaybackControl::seek-current
+                                      mpdClient
+                                      (car xs))
+                                    (mpd-disconnect mpdClient)]
        [(eq? method #:move-cursor)
              (let ([newPos               (+ highlightPos (car xs))]
                    [winLen                      (calculate-height)]

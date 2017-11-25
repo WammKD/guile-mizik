@@ -136,7 +136,7 @@
         (equal? char 13)
         (equal? char 10)
         (equal? char KEY_ENTER)
-        (equal? char #\newline)) (newWin #:play        client)
+        (equal? char #\newline)) (newWin #:play)
                                  (main newWin newPD)]
      [(equal? char #\space)      (newWin #:toggle-play)
                                  (main newWin newPD)]
@@ -159,9 +159,9 @@
                                                     (let ([nnC (getch w)])
                                                       (cond
                                                        [(equal? nnC #\C)
-                                                             (newWin #:seek client "+5")]
+                                                             (newWin #:seek "+5")]
                                                        [(equal? nnC #\D)
-                                                             (newWin #:seek client "-5")]))]
+                                                             (newWin #:seek "-5")]))]
                                               ;; Alt
                                               [(equal? newC #\3) ]
                                               ;; Alt + Shift
@@ -171,17 +171,17 @@
                                                     (let ([nnC (getch w)])
                                                       (cond
                                                        [(equal? nnC #\C)
-                                                             (newWin #:seek client "+60")]
+                                                             (newWin #:seek "+60")]
                                                        [(equal? nnC #\D)
-                                                             (newWin #:seek client "-60")]))]
+                                                             (newWin #:seek "-60")]))]
                                               ;; Ctrl + Shift
                                               [(equal? newC #\6)
                                                     (let ([nnC (getch w)])
                                                       (cond
                                                        [(equal? nnC #\C)
-                                                             (newWin #:seek client "+10")]
+                                                             (newWin #:seek "+10")]
                                                        [(equal? nnC #\D)
-                                                             (newWin #:seek client "-10")]))]
+                                                             (newWin #:seek "-10")]))]
                                               ;; Ctrl + Alt
                                               [(equal? newC #\7) ]
                                               ;; Ctrl + Shift + Alt
