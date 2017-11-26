@@ -219,6 +219,21 @@
        [(eq? method #:get-max-y)    (getmaxy  window)]
        [(eq? method #:get-max-x)    (getmaxx  window)]
        [(eq? method #:refresh)      (refresh  window)]
+       [(eq? method #:set-vol)      (mpd-connect mpdClient)
+                                    (let ([newVol ((if (cadr xs) + -)
+                                                    (assoc-ref
+                                                      (get-mpd-response
+                                                        (mpdStatus::status
+                                                          mpdClient))
+                                                      'volume)
+                                                    (car xs))])
+                                      (mpdPlaybackOption::set-vol!
+                                        mpdClient
+                                        (cond
+                                         [(> newVol 100)    100]
+                                         [(< newVol   0)      0]
+                                         [else           newVol])))
+                                    (mpd-disconnect mpdClient)]
        [(eq? method #:play)         (when (> highlightPos 0)
                                       (mpd-connect mpdClient)
                                       (mpdPlaybackControl::play

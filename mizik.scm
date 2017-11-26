@@ -140,6 +140,10 @@
                                  (main newWin newPD)]
      [(equal? char #\space)      (newWin #:toggle-play)
                                  (main newWin newPD)]
+     [(equal? char #\v)          (newWin #:set-vol 5 #t)
+                                 (main newWin newPD)]
+     [(equal? char #\V)          (newWin #:set-vol 5 #f)
+                                 (main newWin newPD)]
      [(equal? char #\esc)        (nodelay! (newWin #:get-window) #t)
                                  (let* ([w (newWin #:get-window)]
                                         [c             (getch w)])
