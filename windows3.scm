@@ -663,29 +663,29 @@
                                        (play-window window stup
                                                     sBox   dBox height)]
          [(eq? method #:rebuild-size)  ;; (write-lines window diff #f #f)
-                                       (let* ([playHght  (- (getmaxy
-                                                              window) height)]
-                                              [prevInfo (atomic-box-ref sBox)]
-                                              [prevTime      (caddr prevInfo)]
-                                              [oldStat      (caaadr prevInfo)]
-                                              [newStat  (list
-                                                          (cons
-                                                            (string-append
-                                                              (substring
-                                                                oldStat
-                                                                0
-                                                                3)
-                                                              (calc-progress-bar
-                                                                (car prevTime)
-                                                                (cdr prevTime)
-                                                                (string=?
-                                                                  (substring
-                                                                    oldStat
-                                                                    0
-                                                                    2)
-                                                                  " ▪")))
-                                                            (cdaadr
-                                                              prevInfo)))])
+                                       (let* ([playHght   (- (getmaxy
+                                                               window) height)]
+                                              [prevInfo  (atomic-box-ref sBox)]
+                                              [prevTimes      (caddr prevInfo)]
+                                              [oldStat       (caaadr prevInfo)]
+                                              [newStat   (list
+                                                           (cons
+                                                             (string-append
+                                                               (substring
+                                                                 oldStat
+                                                                 0
+                                                                 3)
+                                                               (calc-progress-bar
+                                                                 (car prevTimes)
+                                                                 (cdr prevTimes)
+                                                                 (string=?
+                                                                   (substring
+                                                                     oldStat
+                                                                     0
+                                                                     2)
+                                                                   " ▪")))
+                                                             (cdaadr
+                                                               prevInfo)))])
                                          (write-lines
                                            window
                                            playHght
@@ -696,7 +696,7 @@
                                          (atomic-box-set!
                                            sBox
                                            (list (getmaxx
-                                                   window) newStat prevTime)))
+                                                   window) newStat prevTimes)))
                                        (play-window window stup
                                                     sBox   dBox height)]))))
 
