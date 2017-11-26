@@ -454,35 +454,39 @@
                  newEndPos))])))
 
   (define* (play-window window runningThread sBox dBox #:optional [height 3])
-    (define (calc-progBar-from-prev win currSym box)
-      (let* ([winSize          (getmaxx win)]
-             [statePair (atomic-box-ref box)]
-             [prevState     (caar statePair)])
-        (if (= winSize (1+ (string-length prevState)))
-            (list (cons (string-append currSym (substring prevState 2)) (cdar statePair)))
-          (let* ([fIndex             (1+ (string-index prevState #\[))]
-                 [middle                 (string-index prevState #\>) ]
-                 [sIndex                 (string-index prevState #\]) ]
-                 [progLen                            (- sIndex fIndex)]
-                 [fRatio          (/
-                                    (if middle (- middle fIndex) 0)
-                                    ;; Avoid divide by 0
-                                    (if (< progLen 2) 1 (1- progLen)))]
-                 [newLen    (-
-                              (getmaxx win)
-                              (+ fIndex (- (1+ (string-length
-                                                 prevState)) sIndex)))]
-                 [newFlen   (inexact->exact (floor (* fRatio newLen)))])
-            (list (cons (string-append
-                          currSym
-                          (substring prevState 2 fIndex)
-                          (string-concatenate/shared
-                           (make-list (pos-or-to-zero newFlen)   "="))
-                          (if middle ">" "-")
-                          (string-concatenate/shared
-                            (make-list (pos-or-to-zero
-                                         (- newLen (1+ newFlen))) "-"))
-                          (substring prevState sIndex)) (cdar statePair)))))))
+    (define (calc-progress-bar elapsed totalTime stopped?)
+      (define (parse-seconds seconds)
+        (let* ([rounded        (inexact->exact (round seconds))]
+               [mins    (number->string (quotient  rounded 60))]
+               [secs    (number->string (remainder rounded 60))])
+          (string-append mins ":" (if (= (string-length secs) 1)
+                                      (string-append "0" secs)
+                                    secs))))
+
+      (let* ([remaining                            (- totalTime elapsed)]
+             [eString                          (parse-seconds   elapsed)]
+             [rString                          (parse-seconds remaining)]
+             [tString                          (parse-seconds totalTime)]
+             [totalLen                     (- (getmaxx win)           3
+                                              (string-length eString) 4
+                                              (string-length rString) 3
+                                              (string-length tString) 1)]
+             [firstLen  (if (zero? totalTime)
+                            0
+                          (inexact->exact
+                            (floor (* (/ elapsed totalTime) totalLen))))])
+        (string-append
+          eString
+          " ["
+          (string-concatenate/shared
+            (make-list (pos-or-to-zero firstLen)                "="))
+          (if stopped? "-" ">")
+          (string-concatenate/shared
+            (make-list (pos-or-to-zero (- totalLen firstLen 1)) "-"))
+          "] "
+          rString
+          " / "
+          tString)))
 
     (define (write-lines wind windHeightDiff statusStrings rev?)
       (define (write-line lineIndex lineStrings winLength r?)
@@ -509,39 +513,6 @@
 
     (define (set-display win       client
                          statusBox displayedSongBox heightMeasurement)
-      (define (calc-progress-bar elapsed totalTime stopped?)
-        (let* ([remaining                            (- totalTime elapsed)]
-               [eString                          (parse-seconds   elapsed)]
-               [rString                          (parse-seconds remaining)]
-               [tString                          (parse-seconds totalTime)]
-               [totalLen                     (- (getmaxx win)           3
-                                                (string-length eString) 4
-                                                (string-length rString) 3
-                                                (string-length tString) 1)]
-               [firstLen  (if (zero? totalTime)
-                              0
-                            (inexact->exact
-                              (floor (* (/ elapsed totalTime) totalLen))))])
-          (string-append
-            eString
-            " ["
-            (string-concatenate/shared
-              (make-list (pos-or-to-zero firstLen)                "="))
-            (if stopped? "-" ">")
-            (string-concatenate/shared
-              (make-list (pos-or-to-zero (- totalLen firstLen 1)) "-"))
-            "] "
-            rString
-            " / "
-            tString)))
-      (define (parse-seconds seconds)
-        (let* ([rounded        (inexact->exact (round seconds))]
-               [mins    (number->string (quotient  rounded 60))]
-               [secs    (number->string (remainder rounded 60))])
-          (string-append mins ":" (if (= (string-length secs) 1)
-                                      (string-append "0" secs)
-                                    secs))))
-
       (mpd-connect client)
       (let ([status (get-mpd-response (mpdStatus::status client))])
         (mpd-disconnect client)
@@ -550,44 +521,85 @@
               [dh          (- (getmaxy win) heightMeasurement)])
           (cond
            [(string=? stateString "stop")
-                 (let ([status   (list (cons (string-append
-                                               " ▪ "
-                                               (calc-progress-bar 0 0 #t)) normal))]
-                       [dispSong (list (cons ""                 normal))])
+                 (let ([winWidth              (getmaxx win)]
+                       [prevInfo (atomic-box-ref statusBox)]
+                       [dispSong    (list (cons "" normal))])
                    (write-lines win dh      dispSong #t)
-                   (write-lines win (1+ dh) status   #t)
-                   (atomic-box-set! statusBox        status)
+                   (when (or
+                           (not prevInfo)
+                           (not (and
+                                  (= winWidth (car prevInfo))
+                                  (string=?
+                                    (substring (caaadr prevInfo) 0 3)
+                                    " ▪ "))))
+                     (let ([status (list (cons
+                                           (string-append
+                                             " ▪ "
+                                             (calc-progress-bar 0 0 #t))
+                                           normal))])
+                       (write-lines win (1+ dh) status   #t)
+                       (atomic-box-set!    statusBox (list
+                                                       winWidth
+                                                       status
+                                                       (cons 0 0)))))
                    (atomic-box-set! displayedSongBox dispSong))]
            [(string=? stateString "play")
                  (mpd-connect client)
                  (let ([song (get-mpd-response
                                (mpdStatus::current-song client))])
                    (mpd-disconnect client)
-                   (let ([status   (list (cons
-                                           (string-append
-                                             " ▶ "
-                                             (calc-progress-bar
-                                               (assoc-ref status 'elapsed)
-                                               (assoc-ref song   'Time)
-                                               #f))
-                                           normal))]
-                         [dispSong (list
-                                     (cons " "                      normal)
-                                     (cons (assoc-ref song 'Title)  bold)
-                                     (cons " from "                 normal)
-                                     (cons (assoc-ref song 'Album)  bold)
-                                     (cons " by "                   normal)
-                                     (cons (assoc-ref song 'Artist) bold))])
+                   (let* ([elapsed  (assoc-ref status 'elapsed)]
+                          [time     (assoc-ref song   'Time)]
+                          [status   (list (cons (string-append
+                                                  " ▶ "
+                                                  (calc-progress-bar
+                                                    elapsed
+                                                    time
+                                                    #f)) normal))]
+                          [dispSong (list
+                                      (cons " "                      normal)
+                                      (cons (assoc-ref song 'Title)  bold)
+                                      (cons " from "                 normal)
+                                      (cons (assoc-ref song 'Album)  bold)
+                                      (cons " by "                   normal)
+                                      (cons (assoc-ref song 'Artist) bold))])
                      (write-lines win dh      dispSong #t)
                      (write-lines win (1+ dh) status   #t)
-                     (atomic-box-set! statusBox        status)
+                     (atomic-box-set! statusBox        (list
+                                                         (getmaxx win)
+                                                         status
+                                                         (cons elapsed time)))
                      (atomic-box-set! displayedSongBox dispSong)))]
            [(string=? stateString "pause")
-                 (let ([status (calc-progBar-from-prev win " 𝍪" statusBox)])
-                   (write-lines win dh      (atomic-box-ref
-                                              displayedSongBox) #t)
-                   (write-lines win (1+ dh) status              #t)
-                   (atomic-box-set! statusBox        status))])
+                 (let ([winWidth              (getmaxx win)]
+                       [prevInfo (atomic-box-ref statusBox)])
+                   (write-lines win dh (atomic-box-ref displayedSongBox) #t)
+
+                   (if (= winWidth (car prevInfo))
+                       (let ([prevStatus (caaadr prevInfo)])
+                         (when (not (string=? (substring prevStatus 0 3) " 𝍪 "))
+                           (let ([status (list (cons
+                                                 (string-append
+                                                   " 𝍪 "
+                                                   (substring prevStatus 3))
+                                                 (cdaadr prevInfo)))])
+                             (write-lines win (1+ dh) status #t)
+                             (atomic-box-set! statusBox (list
+                                                          winWidth
+                                                          status
+                                                          (caddr prevInfo))))))
+                     (let* ([prevTimes (caddr prevInfo)]
+                            [status    (list (cons (string-append
+                                                     " 𝍪 "
+                                                     (calc-progress-bar
+                                                       (car prevTimes)
+                                                       (cdr prevTimes)
+                                                       #f)) normal))])
+                       (write-lines win (1+ dh) status #t)
+                       (atomic-box-set! statusBox (list
+                                                    winWidth
+                                                    status
+                                                    prevTimes)))))])
           (refresh win)))
       (sleep 1)
       (set-display win client statusBox displayedSongBox heightMeasurement))
@@ -604,35 +616,40 @@
         (cond
          [(eq? method #:get-height)                              height]
          [(eq? method #:rebuild-play)  (write-lines window diff #f #f)
-                                       (write-lines
-                                         window
-                                         (- (getmaxy window) height)
-                                         (atomic-box-ref dBox)
-                                         #t)
-                                       (let ([stat (atomic-box-ref sBox)])
+                                       (let ([stat     (atomic-box-ref sBox)]
+                                             [playHght  (- (getmaxy
+                                                             window) height)])
                                          (write-lines
                                            window
-                                           (1+ (- (getmaxy window) height))
-                                           (list (cons
-                                                   (string-append
-                                                     " ▶"
-                                                     (substring (caar stat) 2))
-                                                   (cdar stat)))
+                                           playHght
+                                           (atomic-box-ref dBox)
+                                           #t)
+                                         (write-lines
+                                           window
+                                           (1+ playHght)
+                                           (list
+                                             (cons
+                                               (string-append
+                                                 " ▶"
+                                                 (substring (caaadr stat) 2))
+                                               (cdaadr stat)))
                                            #t))
                                        (play-window window stup
                                                     sBox   dBox height)]
          [(eq? method #:rebuild-pause) (write-lines window diff #f #f)
-                                       (write-lines
-                                         window
-                                         (- (getmaxy window) height)
-                                         (atomic-box-ref dBox)
-                                         #t)
-                                       (let* ([stat  (atomic-box-ref sBox)]
-                                              [state           (caar stat)]
-                                              [sym   (substring state 0 2)])
+                                       (let* ([playHght  (- (getmaxy
+                                                              window) height)]
+                                              [stat     (atomic-box-ref sBox)]
+                                              [state            (caaadr stat)]
+                                              [sym      (substring state 0 2)])
                                          (write-lines
                                            window
-                                           (1+ (- (getmaxy window) height))
+                                           playHght
+                                           (atomic-box-ref dBox)
+                                           #t)
+                                         (write-lines
+                                           window
+                                           (1+ playHght)
                                            (list
                                              (cons
                                                (string-append
@@ -641,25 +658,45 @@
                                                   [(string=? sym " ▶") " 𝍪"]
                                                   [else                " ▪"])
                                                  (substring state 2))
-                                               (cdar stat)))
+                                               (cdaadr stat)))
                                            #t))
                                        (play-window window stup
                                                     sBox   dBox height)]
          [(eq? method #:rebuild-size)  ;; (write-lines window diff #f #f)
-                                       (write-lines
-                                         window
-                                         (- (getmaxy window) height)
-                                         (atomic-box-ref dBox)
-                                         #t)
-                                       (write-lines
-                                         window
-                                         (1+ (- (getmaxy window) height))
-                                         (calc-progBar-from-prev
+                                       (let* ([playHght  (- (getmaxy
+                                                              window) height)]
+                                              [prevInfo (atomic-box-ref sBox)]
+                                              [prevTime      (caddr prevInfo)]
+                                              [oldStat      (caaadr prevInfo)]
+                                              [newStat  (list
+                                                          (cons
+                                                            (string-append
+                                                              (substring
+                                                                oldStat
+                                                                0
+                                                                3)
+                                                              (calc-progress-bar
+                                                                (car prevTime)
+                                                                (cdr prevTime)
+                                                                (string=?
+                                                                  (substring
+                                                                    oldStat
+                                                                    0
+                                                                    2)
+                                                                  " ▪")))
+                                                            (cdaadr
+                                                              prevInfo)))])
+                                         (write-lines
                                            window
-                                           (substring (caar (atomic-box-ref
-                                                              sBox)) 0 2)
-                                           sBox)
-                                         #t)
+                                           playHght
+                                           (atomic-box-ref dBox)
+                                           #t)
+                                         (write-lines window  (1+ playHght)
+                                                      newStat #t)
+                                         (atomic-box-set!
+                                           sBox
+                                           (list (getmaxx
+                                                   window) newStat prevTime)))
                                        (play-window window stup
                                                     sBox   dBox height)]))))
 
@@ -667,7 +704,7 @@
 
   (columned-window
     win
-    (play-window   win #f (make-atomic-box "") (make-atomic-box ""))
+    (play-window   win #f (make-atomic-box #f) (make-atomic-box #f))
     mpd
     '()
     (build-columns win #f captions             #f)
