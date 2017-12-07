@@ -121,7 +121,7 @@
           [newLines  (if formatted
                          formatted
                        (map format-and-add body (iota (length body) 1)))]
-          [linesLen (length lines)])
+          [linesLen  (length lines)])
       (lambda (method . xs)
         (cond
          [(eq? method #:get-width)                            columnWidth]
