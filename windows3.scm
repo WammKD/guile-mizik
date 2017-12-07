@@ -95,7 +95,7 @@
                    "In procedure column#:add-new-line: additional line "
                    "pushes lines length to larger value "
                    "(" (number->string newLinesLength) ") than window height "
-                   "(" (number->string linesLength)    ")")))))
+                   "(" (number->string    linesLength) ")")))))
     (define (calc-new-line l)
       (let* ([line                (if l l "")]
              [ELLIPSIS                    "…"]
