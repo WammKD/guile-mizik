@@ -200,8 +200,9 @@
                                                    perc
                                                  percentage)))]))))
 
-  (define (columned-window window     playWindow   mpdClient  masterList
-                           allColumns highlightPos begPos     endPos)
+  (define (columned-window window       playWindow mpdClient
+                           masterList   allColumns isInSelectionMode
+                           highlightPos begPos     endPos)
     (define (calculate-height)
       (- (getmaxy window) (playWindow #:get-height)))
 
@@ -275,6 +276,7 @@
                         mpdClient
                         masterList
                         allColumns
+                        isInSelectionMode
                         (if (and (negative? newPos) (zero? highlightPos))
                             0
                           (if (< newPos 1) 1 (if (< listLen newPos)
@@ -294,10 +296,10 @@
                    (and
                      (< newPos       0)
                      (= highlightPos 0)))
-                      (columned-window window     playWindow
-                                       mpdClient  masterList
-                                       allColumns highlightPos
-                                       begPos     endPos)]
+                      (columned-window window       playWindow
+                                       mpdClient    masterList
+                                       allColumns   isInSelectionMode
+                                       highlightPos begPos            endPos)]
                 [(and (< newPos 1) (< (+ begPos (car xs)) 0))
                       (clear-lines window lastVisibleLineOfWin 1)
                       (columned-window
@@ -309,6 +311,7 @@
                           (lambda (col)
                             (col #:rebuild (: masterList 0 (1- winLen))))
                           allColumns)
+                        isInSelectionMode
                         1
                         0
                         (if (< (- listLen begPos) (1- winLen))
@@ -332,6 +335,7 @@
                               (col #:rebuild
                                      (: masterList newBegPos newEndPos)))
                             allColumns)
+                          isInSelectionMode
                           (- newEndPos newBegPos)
                           newBegPos
                           newEndPos))]
@@ -353,6 +357,7 @@
                               (col #:rebuild
                                      (: masterList newBegPos newEndPos)))
                             allColumns)
+                          isInSelectionMode
                           (- winLen (- listLen (+ (1- begPos) newPos)))
                           newBegPos
                           newEndPos))]
@@ -376,6 +381,7 @@
                               (col #:rebuild
                                      (: masterList newBegPos newEndPos)))
                             allColumns)
+                          isInSelectionMode
                           highlightPos
                           newBegPos
                           newEndPos))]
@@ -412,6 +418,7 @@
                                                                 #:get-height)))
                                                 allColumns))
                                           allColumns)
+                                        isInSelectionMode
                                         highlightPos
                                         begPos
                                         (if inc? (1+ endPos) endPos)))]
@@ -447,6 +454,7 @@
                    (: masterList newBegPos newEndPos)
                    allColumns
                    (pw #:get-height))
+                 isInSelectionMode
                  (if (> (- listLen begPos) linesHeight)
                      (- (1+ currSongIndx) newBegPos)
                    highlightPos)
@@ -708,6 +716,7 @@
     mpd
     '()
     (build-columns win #f captions             #f)
+    #f
     0
     0
     0))
