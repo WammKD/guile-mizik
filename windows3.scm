@@ -219,6 +219,7 @@
        [(eq? method #:get-max-y-x)  (getmaxyx window)]
        [(eq? method #:get-max-y)    (getmaxy  window)]
        [(eq? method #:get-max-x)    (getmaxx  window)]
+       [(eq? method #:is-in-mode)   isInSelectionMode]
        [(eq? method #:refresh)      (refresh  window)]
        [(eq? method #:set-vol)      (mpd-connect mpdClient)
                                     (let ([newVol ((if (cadr xs) + -)

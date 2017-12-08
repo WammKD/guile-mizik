@@ -117,84 +117,86 @@
                      (mainWindow #:rebuild)
                    mainWindow)]
          [char   (getch (newWin #:get-window))])
-    (cond
-     ;; [(equal? char #\a)       (main
-     ;;                            (newWin #:add-new-line (car d) #f)
-     ;;                            newPD
-     ;;                            (cdr d))]
-     ;; [(equal? char #\i)       (main
-     ;;                            (newWin #:add-new-line (car d) 5)
-     ;;                            newPD
-     ;;                            (cdr d))]
-     [(equal? char KEY_NPAGE)    (main (newWin #:move-cursor  10) newPD)]
-     [(equal? char #\n)          (main (newWin #:move-cursor  3)  newPD)]
-     [(equal? char KEY_DOWN)     (main (newWin #:move-cursor  1)  newPD)]
-     [(equal? char KEY_PPAGE)    (main (newWin #:move-cursor -10) newPD)]
-     [(equal? char #\p)          (main (newWin #:move-cursor -3)  newPD)]
-     [(equal? char KEY_UP)       (main (newWin #:move-cursor -1)  newPD)]
-     [(or
-        (equal? char 13)
-        (equal? char 10)
-        (equal? char KEY_ENTER)
-        (equal? char #\newline)) (newWin #:play)
-                                 (main newWin newPD)]
-     [(equal? char #\space)      (newWin #:toggle-play)
-                                 (main newWin newPD)]
-     [(equal? char #\v)          (newWin #:set-vol 5 #t)
-                                 (main newWin newPD)]
-     [(equal? char #\V)          (newWin #:set-vol 5 #f)
-                                 (main newWin newPD)]
-     [(equal? char #\esc)        (nodelay! (newWin #:get-window) #t)
-                                 (let* ([w (newWin #:get-window)]
-                                        [c             (getch w)])
-                                   (nodelay! w #f)
+    (if (newWin #:is-in-mode)
+        (+ 1 1)
+      (cond
+       ;; [(equal? char #\a)       (main
+       ;;                            (newWin #:add-new-line (car d) #f)
+       ;;                            newPD
+       ;;                            (cdr d))]
+       ;; [(equal? char #\i)       (main
+       ;;                            (newWin #:add-new-line (car d) 5)
+       ;;                            newPD
+       ;;                            (cdr d))]
+       [(equal? char KEY_NPAGE)    (main (newWin #:move-cursor  10) newPD)]
+       [(equal? char #\n)          (main (newWin #:move-cursor  3)  newPD)]
+       [(equal? char KEY_DOWN)     (main (newWin #:move-cursor  1)  newPD)]
+       [(equal? char KEY_PPAGE)    (main (newWin #:move-cursor -10) newPD)]
+       [(equal? char #\p)          (main (newWin #:move-cursor -3)  newPD)]
+       [(equal? char KEY_UP)       (main (newWin #:move-cursor -1)  newPD)]
+       [(or
+          (equal? char 13)
+          (equal? char 10)
+          (equal? char KEY_ENTER)
+          (equal? char #\newline)) (newWin #:play)
+                                   (main newWin newPD)]
+       [(equal? char #\space)      (newWin #:toggle-play)
+                                   (main newWin newPD)]
+       [(equal? char #\v)          (newWin #:set-vol 5 #t)
+                                   (main newWin newPD)]
+       [(equal? char #\V)          (newWin #:set-vol 5 #f)
+                                   (main newWin newPD)]
+       [(equal? char #\esc)        (nodelay! (newWin #:get-window) #t)
+                                   (let* ([w (newWin #:get-window)]
+                                          [c             (getch w)])
+                                     (nodelay! w #f)
 
-                                   ;; If false, the user just pressed ESC
-                                   (if c
-                                       (begin
-                                         (when (and
-                                                 (equal? c         #\[)
-                                                 (equal? (getch w) #\1)
-                                                 (equal? (getch w) #\;))
-                                           (let ([newC (getch w)])
-                                             (cond
-                                              ;; Shift
-                                              [(equal? newC #\2)
-                                                    (let ([nnC (getch w)])
-                                                      (cond
-                                                       [(equal? nnC #\C)
-                                                             (newWin #:seek "+5")]
-                                                       [(equal? nnC #\D)
-                                                             (newWin #:seek "-5")]))]
-                                              ;; Alt
-                                              [(equal? newC #\3) ]
-                                              ;; Alt + Shift
-                                              [(equal? newC #\4) ]
-                                              ;; Ctrl
-                                              [(equal? newC #\5)
-                                                    (let ([nnC (getch w)])
-                                                      (cond
-                                                       [(equal? nnC #\C)
-                                                             (newWin #:seek "+60")]
-                                                       [(equal? nnC #\D)
-                                                             (newWin #:seek "-60")]))]
-                                              ;; Ctrl + Shift
-                                              [(equal? newC #\6)
-                                                    (let ([nnC (getch w)])
-                                                      (cond
-                                                       [(equal? nnC #\C)
-                                                             (newWin #:seek "+10")]
-                                                       [(equal? nnC #\D)
-                                                             (newWin #:seek "-10")]))]
-                                              ;; Ctrl + Alt
-                                              [(equal? newC #\7) ]
-                                              ;; Ctrl + Shift + Alt
-                                              [(equal? newC #\8) ])))
+                                     ;; If false, the user just pressed ESC
+                                     (if c
+                                         (begin
+                                           (when (and
+                                                   (equal? c         #\[)
+                                                   (equal? (getch w) #\1)
+                                                   (equal? (getch w) #\;))
+                                             (let ([newC (getch w)])
+                                               (cond
+                                                ;; Shift
+                                                [(equal? newC #\2)
+                                                      (let ([nnC (getch w)])
+                                                        (cond
+                                                         [(equal? nnC #\C)
+                                                               (newWin #:seek "+5")]
+                                                         [(equal? nnC #\D)
+                                                               (newWin #:seek "-5")]))]
+                                                ;; Alt
+                                                [(equal? newC #\3) ]
+                                                ;; Alt + Shift
+                                                [(equal? newC #\4) ]
+                                                ;; Ctrl
+                                                [(equal? newC #\5)
+                                                      (let ([nnC (getch w)])
+                                                        (cond
+                                                         [(equal? nnC #\C)
+                                                               (newWin #:seek "+60")]
+                                                         [(equal? nnC #\D)
+                                                               (newWin #:seek "-60")]))]
+                                                ;; Ctrl + Shift
+                                                [(equal? newC #\6)
+                                                      (let ([nnC (getch w)])
+                                                        (cond
+                                                         [(equal? nnC #\C)
+                                                               (newWin #:seek "+10")]
+                                                         [(equal? nnC #\D)
+                                                               (newWin #:seek "-10")]))]
+                                                ;; Ctrl + Alt
+                                                [(equal? newC #\7) ]
+                                                ;; Ctrl + Shift + Alt
+                                                [(equal? newC #\8) ])))
 
-                                         (main newWin newPD))
-                                     ;; Escape key, only
-                                     (main newWin newPD)))]
-     [(not (equal? char #\q))    (main newWin newPD)])))
+                                           (main newWin newPD))
+                                       ;; Escape key, only
+                                       (main newWin newPD)))]
+       [(not (equal? char #\q))    (main newWin newPD)]))))
 
 (endwin)
 
