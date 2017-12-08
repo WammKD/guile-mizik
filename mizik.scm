@@ -147,11 +147,11 @@
      [(equal? char #\esc)        (nodelay! (newWin #:get-window) #t)
                                  (let* ([w (newWin #:get-window)]
                                         [c             (getch w)])
+                                   (nodelay! w #f)
+
                                    ;; If false, the user just pressed ESC
                                    (if c
                                        (begin
-                                         (nodelay! w #f)
-
                                          (when (and
                                                  (equal? c         #\[)
                                                  (equal? (getch w) #\1)
