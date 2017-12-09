@@ -56,6 +56,7 @@
                                (column
                                  wind
                                  (cdr cc)
+                                 #f
                                  (car cc)
                                  '()
                                  offset
@@ -64,7 +65,8 @@
                  [col (if elements
                           (cc #:rebuild-with-size elements offset #f playWinHt)
                         (let ([ccs (car cc)])
-                          (column wind (cdr cc) ccs
+                          (column wind (cdr cc)
+                                  #f   ccs
                                   '()  offset   (/ (string-length
                                                      ccs) captionTotal))))])
             (loop
@@ -72,10 +74,10 @@
               (cdr current)
               (+ (col #:get-width) offset)))))))
 
-  (define* (column window function header
-                   lines  offset   percentage #:optional [refinedLines #f]
-                                                         [formatHeader #f]
-                                                         [formatted    #f])
+  (define* (column window function isHighlighted header
+                   lines  offset   percentage    #:optional [refinedLines #f]
+                                                            [formatHeader #f]
+                                                            [formatted    #f])
     (define body        (if refinedLines
                             refinedLines
                           (map
@@ -151,6 +153,7 @@
                                              (column
                                                window
                                                function
+                                               isHighlighted
                                                header
                                                (append
                                                  (: lines 0     index)
@@ -181,6 +184,7 @@
          [(eq? method #:rebuild)           (column
                                              window
                                              function
+                                             isHighlighted
                                              header
                                              (car xs)
                                              offset
@@ -192,6 +196,7 @@
                                            (column
                                              window
                                              function
+                                             isHighlighted
                                              header
                                              (car  xs)
                                              (cadr xs)
