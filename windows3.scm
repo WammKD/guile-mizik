@@ -133,6 +133,7 @@
          [(eq? method #:get-lines)                                       lines]
          [(eq? method #:get-refined)                                      body]
          [(eq? method #:get-formed-lines)                             newLines]
+         [(eq? method #:is-highlighted)                          isHighlighted]
          [(eq? method #:calc-new-line)                           calc-new-line]
          [(eq? method #:highlight-column)  (for-each
                                              (lambda (index)
@@ -223,19 +224,19 @@
     (chgat window -1 A_REVERSE 0 #:x 0 #:y 0)
     (if (>= highlightPos (calculate-height))
         (error highlightPos)
-      (when (not isInSelectionMode)
+      (when (not (car isInSelectionMode))
         (chgat window -1 A_REVERSE 0 #:x 0 #:y highlightPos)))
 
     (refresh window)
 
     (lambda (method . xs)
       (cond
-       [(eq? method #:get-window)              window]
-       [(eq? method #:get-max-y-x)  (getmaxyx window)]
-       [(eq? method #:get-max-y)    (getmaxy  window)]
-       [(eq? method #:get-max-x)    (getmaxx  window)]
-       [(eq? method #:is-in-mode)   isInSelectionMode]
-       [(eq? method #:refresh)      (refresh  window)]
+       [(eq? method #:get-window)                    window]
+       [(eq? method #:get-max-y-x)        (getmaxyx window)]
+       [(eq? method #:get-max-y)          (getmaxy  window)]
+       [(eq? method #:get-max-x)          (getmaxx  window)]
+       [(eq? method #:is-in-mode)   (car isInSelectionMode)]
+       [(eq? method #:refresh)            (refresh  window)]
        [(eq? method #:set-vol)      (mpd-connect mpdClient)
                                     (let ([newVol ((if (cadr xs) + -)
                                                     (assoc-ref
@@ -283,7 +284,7 @@
                                         (playWindow #:get-height) #t)
                                     (columned-window
                                       window       playWindow mpdClient
-                                      masterList   allColumns #t
+                                      masterList   allColumns (cons #t 0)
                                       highlightPos begPos     endPos)]
        [(eq? method #:move-cursor)
              (let ([newPos               (+ highlightPos (car xs))]
@@ -741,7 +742,7 @@
     mpd
     '()
     (build-columns win #f captions             #f)
-    #f
+    (cons #f #f)
     0
     0
     0))
