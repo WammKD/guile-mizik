@@ -286,6 +286,39 @@
                                       window       playWindow mpdClient
                                       masterList   allColumns (cons #t 0)
                                       highlightPos begPos     endPos)]
+       [(eq? method #:move-select)  (when (not (car isInSelectionMode))
+                                      (error (string-append
+                                               "In procedure "
+                                               "columned-window#:move-select: "
+                                               "can't move selected columns "
+                                               "while not in Selection Mode.")))
+                                    (let* ([moveAmount (car xs)]
+                                           [moveIsNeg  (negative? moveAmount)]
+                                           [startIndex (if (not moveIsNeg)
+                                                           (cdr
+                                                             isInSelectionMode)
+                                                         (+
+                                                           (cdr
+                                                             isInSelectionMode)
+                                                           moveAmount))]
+                                           [  endIndex (1+ (if moveIsNeg
+                                                               (cdr
+                                                                 isInSelectionMode)
+                                                             (+
+                                                               (cdr
+                                                                 isInSelectionMode)
+                                                               moveAmount)))]
+                                           [lenCols    (length allColumns)]
+                                           [sI         (if (< startIndex 0)
+                                                           0
+                                                         startIndex)]
+                                           [eI         (if (> endIndex lenCols)
+                                                           lenCols
+                                                         endIndex)]
+                                           [newList    (: allColumns sI eI)])
+                                      (+ 1 1)
+                                      ;; ((car allColumns) #:is-highlighted)
+                                      )]
        [(eq? method #:move-cursor)
              (let ([newPos               (+ highlightPos (car xs))]
                    [winLen                      (calculate-height)]
