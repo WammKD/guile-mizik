@@ -118,7 +118,8 @@
                    mainWindow)]
          [char   (getch (newWin #:get-window))])
     (if (newWin #:is-in-mode)
-        (+ 1 1)
+        (cond
+         [(not (equal? char #\q))    (main newWin newPD)])
       (cond
        ;; [(equal? char #\a)       (main
        ;;                            (newWin #:add-new-line (car d) #f)
@@ -196,6 +197,7 @@
                                            (main newWin newPD))
                                        ;; Escape key, only
                                        (main newWin newPD)))]
+       [(equal? char #\s)          (main (newWin #:enter-select) newPD)]
        [(not (equal? char #\q))    (main newWin newPD)]))))
 
 (endwin)

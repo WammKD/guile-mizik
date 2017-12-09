@@ -126,14 +126,23 @@
           [linesLen  (length lines)])
       (lambda (method . xs)
         (cond
-         [(eq? method #:get-width)                            columnWidth]
-         [(eq? method #:get-tag)                  (string->symbol header)]
-         [(eq? method #:get-header)                                header]
-         [(eq? method #:get-formed-header)                      newHeader]
-         [(eq? method #:get-lines)                                  lines]
-         [(eq? method #:get-refined)                                 body]
-         [(eq? method #:get-formed-lines)                        newLines]
-         [(eq? method #:calc-new-line)                      calc-new-line]
+         [(eq? method #:get-width)                                 columnWidth]
+         [(eq? method #:get-tag)                       (string->symbol header)]
+         [(eq? method #:get-header)                                     header]
+         [(eq? method #:get-formed-header)                           newHeader]
+         [(eq? method #:get-lines)                                       lines]
+         [(eq? method #:get-refined)                                      body]
+         [(eq? method #:get-formed-lines)                             newLines]
+         [(eq? method #:calc-new-line)                           calc-new-line]
+         [(eq? method #:highlight-column)  (for-each
+                                             (lambda (index)
+                                               (chgat window        columnWidth
+                                                      (if (cadr xs)
+                                                          A_REVERSE
+                                                        A_NORMAL)   0
+                                                      #:x offset    #:y index))
+                                             (iota
+                                               (- (getmaxy window) (car xs))))]
          [(eq? method #:add-new-line)      (let* ([line            (car xs)]
                                                   [index       (if (>
                                                                      (cadr xs)
@@ -214,7 +223,8 @@
     (chgat window -1 A_REVERSE 0 #:x 0 #:y 0)
     (if (>= highlightPos (calculate-height))
         (error highlightPos)
-      (chgat window -1 A_REVERSE 0 #:x 0 #:y highlightPos))
+      (when (not isInSelectionMode)
+        (chgat window -1 A_REVERSE 0 #:x 0 #:y highlightPos)))
 
     (refresh window)
 
@@ -266,6 +276,15 @@
                                       mpdClient
                                       (car xs))
                                     (mpd-disconnect mpdClient)]
+       [(eq? method #:enter-select) (chgat window -1    A_NORMAL
+                                           0      #:x 0 #:y highlightPos)
+                                    ((car allColumns)
+                                      #:highlight-column
+                                        (playWindow #:get-height) #t)
+                                    (columned-window
+                                      window       playWindow mpdClient
+                                      masterList   allColumns #t
+                                      highlightPos begPos     endPos)]
        [(eq? method #:move-cursor)
              (let ([newPos               (+ highlightPos (car xs))]
                    [winLen                      (calculate-height)]
