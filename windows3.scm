@@ -213,7 +213,8 @@
                                              (let ([perc (caddr xs)])
                                                (if perc
                                                    perc
-                                                 percentage)))]))))
+                                                 percentage)))]
+         [(eq? method #:rebuild-manually)  ]))))
 
   (define (columned-window window       playWindow mpdClient
                            masterList   allColumns isInSelectionMode
@@ -287,38 +288,44 @@
                                       masterList   allColumns (cons #t 0)
                                       highlightPos begPos     endPos)]
        [(eq? method #:move-select)  (when (not (car isInSelectionMode))
-                                      (error (string-append
-                                               "In procedure "
-                                               "columned-window#:move-select: "
-                                               "can't move selected columns "
-                                               "while not in Selection Mode.")))
+                                      (error
+                                        (string-append
+                                          "In procedure "
+                                          "columned-window#:move-select: "
+                                          "can't move selected columns "
+                                          "while not in Selection Mode.")))
                                     (let* ([moveAmount (car xs)]
-                                           [moveIsNeg  (negative? moveAmount)]
-                                           [startIndex (if (not moveIsNeg)
-                                                           (cdr
-                                                             isInSelectionMode)
-                                                         (+
-                                                           (cdr
-                                                             isInSelectionMode)
-                                                           moveAmount))]
-                                           [  endIndex (1+ (if moveIsNeg
-                                                               (cdr
-                                                                 isInSelectionMode)
-                                                             (+
-                                                               (cdr
-                                                                 isInSelectionMode)
-                                                               moveAmount)))]
-                                           [lenCols    (length allColumns)]
-                                           [sI         (if (< startIndex 0)
-                                                           0
-                                                         startIndex)]
-                                           [eI         (if (> endIndex lenCols)
-                                                           lenCols
-                                                         endIndex)]
-                                           [newList    (: allColumns sI eI)])
-                                      (+ 1 1)
-                                      ;; ((car allColumns) #:is-highlighted)
-                                      )]
+                                           [moveIsNeg   (negative? moveAmount)]
+                                           [lastIndex   (1-
+                                                          (length allColumns))]
+                                           [oldIndex   (cdr isInSelectionMode)]
+                                           [newIndex   (+ oldIndex moveAmount)]
+                                           [realNewInd (cond
+                                                        [(< newIndex 0)
+                                                              0]
+                                                        [(> newIndex lastIndex)
+                                                              lastIndex]
+                                                        [else newIndex])]
+                                           [playHeight (playWindow
+                                                         #:get-height)])
+                                      ((list-ref allColumns oldIndex)
+                                        #:highlight-column playHeight #f)
+                                      ((list-ref allColumns realNewInd)
+                                        #:highlight-column playHeight #t)
+                                      (columned-window
+                                        window       playWindow mpdClient
+                                        masterList   allColumns (cons
+                                                                  #t
+                                                                  realNewInd)
+                                        highlightPos begPos     endPos))]
+       [(eq? method #:inc-select)   (when (not (car isInSelectionMode))
+                                      (error
+                                        (string-append
+                                          "In procedure "
+                                          "columned-window#:move-select: "
+                                          "can't increase selected column "
+                                          "while not in Selection Mode.")))
+                                    ]
        [(eq? method #:move-cursor)
              (let ([newPos               (+ highlightPos (car xs))]
                    [winLen                      (calculate-height)]

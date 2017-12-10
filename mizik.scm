@@ -119,7 +119,9 @@
          [char   (getch (newWin #:get-window))])
     (if (newWin #:is-in-mode)
         (cond
-         [(not (equal? char #\q))    (main newWin newPD)])
+         [(equal? char KEY_LEFT)  (main (newWin #:move-select -1) newPD)]
+         [(equal? char KEY_RIGHT) (main (newWin #:move-select  1) newPD)]
+         [(not (equal? char #\q))                    (main newWin newPD)])
       (cond
        ;; [(equal? char #\a)       (main
        ;;                            (newWin #:add-new-line (car d) #f)
