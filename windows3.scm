@@ -56,7 +56,6 @@
                                (column
                                  wind
                                  (cdr cc)
-                                 #f
                                  (car cc)
                                  '()
                                  offset
@@ -65,8 +64,7 @@
                  [col (if elements
                           (cc #:rebuild-with-size elements offset #f playWinHt)
                         (let ([ccs (car cc)])
-                          (column wind (cdr cc)
-                                  #f   ccs
+                          (column wind (cdr cc) ccs
                                   '()  offset   (/ (string-length
                                                      ccs) captionTotal))))])
             (loop
@@ -74,10 +72,10 @@
               (cdr current)
               (+ (col #:get-width) offset)))))))
 
-  (define* (column window function isHighlighted header
-                   lines  offset   percentage    #:optional [refinedLines #f]
-                                                            [formatHeader #f]
-                                                            [formatted    #f])
+  (define* (column window function header
+                   lines  offset   percentage #:optional [refinedLines #f]
+                                                         [formatHeader #f]
+                                                         [formatted    #f])
     (define body        (if refinedLines
                             refinedLines
                           (map
@@ -132,7 +130,6 @@
          [(eq? method #:get-lines)                                       lines]
          [(eq? method #:get-refined)                                      body]
          [(eq? method #:get-formed-lines)                             newLines]
-         [(eq? method #:is-highlighted)                          isHighlighted]
          [(eq? method #:calc-new-line)                           calc-new-line]
          [(eq? method #:highlight-column)  (for-each
                                              (lambda (index)
@@ -162,7 +159,6 @@
                                              (column
                                                window
                                                function
-                                               isHighlighted
                                                header
                                                (append
                                                  (: lines 0     index)
@@ -193,7 +189,6 @@
          [(eq? method #:rebuild)           (column
                                              window
                                              function
-                                             isHighlighted
                                              header
                                              (car xs)
                                              offset
@@ -205,7 +200,6 @@
                                            (column
                                              window
                                              function
-                                             isHighlighted
                                              header
                                              (car  xs)
                                              (cadr xs)
@@ -213,7 +207,17 @@
                                                (if perc
                                                    perc
                                                  percentage)))]
-         [(eq? method #:rebuild-manually)  ]))))
+         [(eq? method #:rebuild-manually)  (let ([perc   (car  xs)]
+                                                 [offSet (cadr xs)])
+                                             (column
+                                               window
+                                               function
+                                               header
+                                               lines
+                                               offSet
+                                               (if (integer? percentage)
+                                                   (- (getmaxx window) offSet)
+                                                 (+ percentage perc))))]))))
 
   (define (columned-window window       playWindow mpdClient
                            masterList   allColumns isInSelectionMode
@@ -324,9 +328,49 @@
                                           "columned-window#:move-select: "
                                           "can't increase selected column "
                                           "while not in Selection Mode.")))
-                                    (let* ([winWidth (getmaxx window)]
-                                           [incPerc    (/ 1 winWidth)])
-                                      (+ 1 1))]
+                                    (clear-lines window (1+
+                                                          (- endPos begPos)) 0)
+                                    (columned-window
+                                      window
+                                      playWindow
+                                      mpdClient
+                                      masterList
+                                      (let* ([index   (cdr isInSelectionMode)]
+                                             [incPerc (/ 1  (getmaxx window))]
+                                             [decPerc (/
+                                                        (* incPerc -1)
+                                                        (1- (length
+                                                              allColumns)))])
+                                        (let loop ([result         '()]
+                                                   [current allColumns]
+                                                   [offset           0]
+                                                   [count            0])
+                                          (if (null? current)
+                                              (reverse result)
+                                            (let* ([hghlght (= count index)]
+                                                   [currCol   (car current)]
+                                                   [ newCol
+                                                         (currCol
+                                                           #:rebuild-manually
+                                                           (if hghlght
+                                                               incPerc
+                                                             decPerc)
+                                                           offset)])
+                                              (when hghlght
+                                                (newCol
+                                                  #:highlight-column
+                                                    (playWindow #:get-height)
+                                                    #t))
+                                              (loop
+                                                (cons newCol result)
+                                                (cdr current)
+                                                (+ (newCol
+                                                     #:get-width) offset)
+                                                (1+ count))))))
+                                      isInSelectionMode
+                                      highlightPos
+                                      begPos
+                                      endPos)]
        [(eq? method #:move-cursor)
              (let ([newPos               (+ highlightPos (car xs))]
                    [winLen                      (calculate-height)]
