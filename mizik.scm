@@ -121,7 +121,8 @@
         (cond
          [(equal? char KEY_LEFT)  (main (newWin #:move-select -1) newPD)]
          [(equal? char KEY_RIGHT) (main (newWin #:move-select  1) newPD)]
-         [(equal? char #\=)       (main (newWin #:inc-select)     newPD)]
+         [(equal? char #\=)       (main (newWin #:inc-select   1) newPD)]
+         [(equal? char #\-)       (main (newWin #:inc-select  -1) newPD)]
          [(not (equal? char #\q))                    (main newWin newPD)])
       (cond
        ;; [(equal? char #\a)       (main
