@@ -39,7 +39,7 @@
                             -1
                           (fold
                             (lambda (elem ret)
-                              (+ (* (string-length (car elem)) 1.0) ret))
+                              (+ (string-length (car elem)) ret))
                             0
                             columnsOrCaptions))])
       (let loop ([result                '()]
@@ -85,10 +85,9 @@
                               (function
                                 (assoc-ref line (string->symbol header))))
                             lines)))
-    (define columnWidth (if (exact? percentage)
+    (define columnWidth (if (integer? percentage)
                             percentage
-                          (inexact->exact
-                            (round (* percentage (getmaxx window))))))
+                          (round (* percentage (getmaxx window)))))
 
     (define (check-height newLinesLength playWindowHeight)
       (let ([linesLength (1- (- (getmaxy window) playWindowHeight))])
@@ -325,7 +324,9 @@
                                           "columned-window#:move-select: "
                                           "can't increase selected column "
                                           "while not in Selection Mode.")))
-                                    ]
+                                    (let* ([winWidth (getmaxx window)]
+                                           [incPerc    (/ 1 winWidth)])
+                                      (+ 1 1))]
        [(eq? method #:move-cursor)
              (let ([newPos               (+ highlightPos (car xs))]
                    [winLen                      (calculate-height)]
@@ -497,8 +498,7 @@
                     [linesHeight                   (1- winHeight)]
                     [currSongIndx    (1- (+ begPos highlightPos))]
                     [winSmaller         (> remaining linesHeight)]
-                    [winHalf       (inexact->exact
-                                     (round (/ linesHeight 2.0)))]
+                    [winHalf            (round (/ linesHeight 2))]
                     [newBegPos    (if (> (- listLen begPos) linesHeight)
                                       (cond
                                        [(< (- currSongIndx winHalf) 0)
