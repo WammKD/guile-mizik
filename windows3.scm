@@ -337,8 +337,8 @@
                playWindow
                mpdClient
                masterList
-               (let* ([index   (cdr isInSelectionMode)]
-                      [incPerc (/ 1  (getmaxx window))]
+               (let* ([index                 (cdr isInSelectionMode)]
+                      [incPerc                (/ 1 (getmaxx window))]
                       [decPerc (/
                                  (* incPerc -1)
                                  (- (1- (length allColumns)) index))])
