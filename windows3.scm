@@ -29,10 +29,10 @@
                               startIndex))))))
 
 (define (windows::build-columned-window win mpd . captions)
-  (define (clear-lines win numberOfLines startingIndex)
+  (define (clear-lines win numberOfLines startingVertIndex startingHorizIndex)
     (for-each (lambda (lineIndex)
-                (move win lineIndex 0)
-                (clrtoeol win)) (iota numberOfLines startingIndex)))
+                (move win lineIndex startingHorizIndex)
+                (clrtoeol win)) (iota numberOfLines startingVertIndex)))
   (define (build-columns wind elements columnsOrCaptions playWinHt)
     (let ([windowWidth  (getmaxx wind)]
           [captionTotal (if elements
@@ -209,6 +209,11 @@
                                                  percentage)))]
          [(eq? method #:rebuild-manually)  (let ([perc   (car  xs)]
                                                  [offSet (cadr xs)])
+                                             (clear-lines
+                                               window
+                                               (1+ (length lines))
+                                               0
+                                               offSet)
                                              (column
                                                window
                                                function
@@ -321,56 +326,52 @@
                                                                   #t
                                                                   realNewInd)
                                         highlightPos begPos     endPos))]
-       [(eq? method #:inc-select)   (when (not (car isInSelectionMode))
-                                      (error
-                                        (string-append
-                                          "In procedure "
-                                          "columned-window#:move-select: "
-                                          "can't increase selected column "
-                                          "while not in Selection Mode.")))
-                                    (clear-lines window (1+
-                                                          (- endPos begPos)) 0)
-                                    (columned-window
-                                      window
-                                      playWindow
-                                      mpdClient
-                                      masterList
-                                      (let* ([index   (cdr isInSelectionMode)]
-                                             [incPerc (/ 1  (getmaxx window))]
-                                             [decPerc (/
-                                                        (* incPerc -1)
-                                                        (1- (length
-                                                              allColumns)))])
-                                        (let loop ([result         '()]
-                                                   [current allColumns]
-                                                   [offset           0]
-                                                   [count            0])
-                                          (if (null? current)
-                                              (reverse result)
-                                            (let* ([hghlght (= count index)]
-                                                   [currCol   (car current)]
-                                                   [ newCol
-                                                         (currCol
-                                                           #:rebuild-manually
-                                                           (if hghlght
-                                                               incPerc
-                                                             decPerc)
-                                                           offset)])
-                                              (when hghlght
-                                                (newCol
-                                                  #:highlight-column
-                                                    (playWindow #:get-height)
-                                                    #t))
-                                              (loop
-                                                (cons newCol result)
-                                                (cdr current)
-                                                (+ (newCol
-                                                     #:get-width) offset)
-                                                (1+ count))))))
-                                      isInSelectionMode
-                                      highlightPos
-                                      begPos
-                                      endPos)]
+       [(eq? method #:inc-select)
+             (when (not (car isInSelectionMode))
+               (error (string-append
+                        "In procedure columned-window#:move-select: can't "
+                        "increase selected column while not in Selection "
+                        "Mode.")))
+             (columned-window
+               window
+               playWindow
+               mpdClient
+               masterList
+               (let* ([index   (cdr isInSelectionMode)]
+                      [incPerc (/ 1  (getmaxx window))]
+                      [decPerc (/
+                                 (* incPerc -1)
+                                 (- (1- (length allColumns)) index))])
+                 (let loop ([result         '()]
+                            [current allColumns]
+                            [offset           0]
+                            [count            0])
+                   (if (null? current)
+                       (reverse result)
+                     (let* ([hghlght                 (= count index)]
+                            [newCol  (cond
+                                      [(< count index) (car current)]
+                                      [hghlght         ((car current)
+                                                         #:rebuild-manually
+                                                           incPerc
+                                                           offset)]
+                                      [else            ((car current)
+                                                         #:rebuild-manually
+                                                           decPerc
+                                                           offset)])])
+                       (when hghlght
+                         (newCol #:highlight-column
+                                   (playWindow #:get-height)
+                                   #t))
+                       (loop
+                         (cons newCol result)
+                         (cdr current)
+                         (+ (newCol #:get-width) offset)
+                         (1+ count))))))
+               isInSelectionMode
+               highlightPos
+               begPos
+               endPos)]
        [(eq? method #:move-cursor)
              (let ([newPos               (+ highlightPos (car xs))]
                    [winLen                      (calculate-height)]
@@ -412,7 +413,7 @@
                                        allColumns   isInSelectionMode
                                        highlightPos begPos            endPos)]
                 [(and (< newPos 1) (< (+ begPos (car xs)) 0))
-                      (clear-lines window lastVisibleLineOfWin 1)
+                      (clear-lines window lastVisibleLineOfWin 1 0)
                       (columned-window
                         window
                         playWindow
@@ -435,7 +436,7 @@
                                            begPos
                                          (- listLen (1- winLen)))]
                             [newEndPos listLen])
-                        (clear-lines window lastVisibleLineOfWin 1)
+                        (clear-lines window lastVisibleLineOfWin 1 0)
                         (columned-window
                           window
                           playWindow
@@ -457,7 +458,7 @@
                                            begPos
                                          (- listLen (1- winLen)))]
                             [newEndPos listLen])
-                        (clear-lines window lastVisibleLineOfWin 1)
+                        (clear-lines window lastVisibleLineOfWin 1 0)
                         (columned-window
                           window
                           playWindow
@@ -481,7 +482,7 @@
                                                     (1- winLen))))
                                            endPos
                                          (+ endPos (car xs)))])
-                        (clear-lines window lastVisibleLineOfWin 1)
+                        (clear-lines window lastVisibleLineOfWin 1 0)
                         (columned-window
                           window
                           playWindow
@@ -627,7 +628,7 @@
 
       (if rev?
           (write-line windHeightDiff statusStrings (getmaxx wind) rev?)
-        (clear-lines wind height windHeightDiff)))
+        (clear-lines wind height windHeightDiff 0)))
 
     (define (set-display win       client
                          statusBox displayedSongBox heightMeasurement)
