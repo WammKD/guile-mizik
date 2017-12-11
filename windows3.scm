@@ -225,17 +225,17 @@
                                                header
                                                lines
                                                offSet
-                                               (if (not (car percentage))
+                                               (if (car percentage)
                                                    (cons
-                                                     #f
-                                                     (-
-                                                       (getmaxx window)
-                                                       offSet))
+                                                     #t
+                                                     (+
+                                                       (cdr percentage)
+                                                       perc))
                                                  (cons
-                                                   #t
-                                                   (+
-                                                     (cdr percentage)
-                                                     perc)))))]))))
+                                                   #f
+                                                   (-
+                                                     (getmaxx window)
+                                                     offSet)))))]))))
 
   (define (columned-window window       playWindow mpdClient
                            masterList   allColumns isInSelectionMode
