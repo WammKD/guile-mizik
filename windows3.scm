@@ -329,7 +329,7 @@
                                                                   #t
                                                                   realNewInd)
                                         highlightPos begPos     endPos))]
-       [(eq? method #:inc-select)
+       [(eq? method #:change-select)
              (when (not (car isInSelectionMode))
                (error (string-append
                         "In procedure columned-window#:move-select: can't "
