@@ -59,14 +59,16 @@
                                  (car cc)
                                  '()
                                  offset
-                                 (- windowWidth offset)))) result))
+                                 (cons #f (- windowWidth offset))))) result))
           (let* ([cc  (car current)]
                  [col (if elements
                           (cc #:rebuild-with-size elements offset #f playWinHt)
                         (let ([ccs (car cc)])
                           (column wind (cdr cc) ccs
-                                  '()  offset   (/ (string-length
-                                                     ccs) captionTotal))))])
+                                  '()  offset   (cons
+                                                  #t
+                                                  (/ (string-length
+                                                       ccs) captionTotal)))))])
             (loop
               (cons col result)
               (cdr current)
@@ -83,9 +85,9 @@
                               (function
                                 (assoc-ref line (string->symbol header))))
                             lines)))
-    (define columnWidth (if (integer? percentage)
-                            percentage
-                          (round (* percentage (getmaxx window)))))
+    (define columnWidth (if (car percentage)
+                            (round (* (cdr percentage) (getmaxx window)))
+                          (cdr percentage)))
 
     (define (check-height newLinesLength playWindowHeight)
       (let ([linesLength (1- (- (getmaxy window) playWindowHeight))])
@@ -205,7 +207,7 @@
                                              (cadr xs)
                                              (let ([perc (caddr xs)])
                                                (if perc
-                                                   perc
+                                                   (cons #f perc)
                                                  percentage)))]
          [(eq? method #:rebuild-manually)  (let ([perc   (car   xs)]
                                                  [offSet (cadr  xs)]
@@ -223,9 +225,17 @@
                                                header
                                                lines
                                                offSet
-                                               (if (integer? percentage)
-                                                   (- (getmaxx window) offSet)
-                                                 (+ percentage perc))))]))))
+                                               (if (not (car percentage))
+                                                   (cons
+                                                     #f
+                                                     (-
+                                                       (getmaxx window)
+                                                       offSet))
+                                                 (cons
+                                                   #t
+                                                   (+
+                                                     (cdr percentage)
+                                                     perc)))))]))))
 
   (define (columned-window window       playWindow mpdClient
                            masterList   allColumns isInSelectionMode
@@ -346,30 +356,35 @@
                      allColumns
                    (let* ([incPerc (/       (car xs)    (getmaxx window))]
                           [decPerc (/ (* incPerc -1) (- lastIndex index))])
-                     (let loop ([result         '()]
-                                [current allColumns]
-                                [offset           0]
-                                [count            0])
+                     (let loop ([result          '()]
+                                [current  allColumns]
+                                [offset            0]
+                                [count             0]
+                                [decrease        #t])
                        (if (null? current)
                            (reverse result)
-                         (let* ([pwHeight   (playWindow #:get-height)]
-                                [hghlght              (= count index)]
-                                [newCol   (cond
-                                           [(< count index)
-                                                 (car current)]
-                                           [hghlght
-                                                 ((car current)
-                                                   #:rebuild-manually
-                                                     incPerc
-                                                     offset
-                                                     (-
-                                                       (getmaxy window)
-                                                       pwHeight))]
-                                           [else ((car current)
-                                                   #:rebuild-manually
-                                                     decPerc
-                                                     offset
-                                                     #f)])])
+                         (let* ([pwHeight  (playWindow #:get-height)]
+                                [curr                  (car current)]
+                                [currWidth        (curr #:get-width)]
+                                [hghlght             (= count index)]
+                                [newCol    (cond
+                                            [(< count index)
+                                                  curr]
+                                            [hghlght
+                                                  (curr
+                                                    #:rebuild-manually
+                                                      incPerc
+                                                      offset
+                                                      (-
+                                                        (getmaxy window)
+                                                        pwHeight))]
+                                            [else (if decrease
+                                                      (curr
+                                                        #:rebuild-manually
+                                                          decPerc
+                                                          offset
+                                                          #f)
+                                                    curr)])])
                            (when hghlght
                              (newCol #:highlight-column pwHeight #t))
 
@@ -377,7 +392,12 @@
                              (cons newCol result)
                              (cdr current)
                              (+ (newCol #:get-width) offset)
-                             (1+ count))))))))
+                             (1+ count)
+                             (if (and
+                                   hghlght
+                                   (= currWidth (newCol #:get-width)))
+                                 #f
+                               decrease))))))))
                isInSelectionMode
                highlightPos
                begPos
