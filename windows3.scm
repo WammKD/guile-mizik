@@ -228,9 +228,15 @@
                                                (if (car percentage)
                                                    (cons
                                                      #t
-                                                     (+
-                                                       (cdr percentage)
-                                                       perc))
+                                                     (let ([p (+
+                                                                (cdr
+                                                                  percentage)
+                                                                perc)])
+                                                       (if (<=
+                                                             (+ p perc perc)
+                                                             0)
+                                                           (cdr percentage)
+                                                        p)))
                                                  (cons
                                                    #f
                                                    (-
@@ -354,8 +360,10 @@
                      [lastIndex (1- (length allColumns))])
                  (if (= index lastIndex)
                      allColumns
-                   (let* ([incPerc (/       (car xs)    (getmaxx window))]
-                          [decPerc (/ (* incPerc -1) (- lastIndex index))])
+                   (let* ([winWidth                  (getmaxx window)]
+                          [colsToRight            (- lastIndex index)]
+                          [incPerc     (/       (car xs)    winWidth)]
+                          [decPerc     (/ (* incPerc -1) colsToRight)])
                      (let loop ([result          '()]
                                 [current  allColumns]
                                 [offset            0]
@@ -364,27 +372,39 @@
                        (if (null? current)
                            (reverse result)
                          (let* ([pwHeight  (playWindow #:get-height)]
-                                [curr                  (car current)]
-                                [currWidth        (curr #:get-width)]
+                                [currCol               (car current)]
+                                [currWidth     (currCol #:get-width)]
                                 [hghlght             (= count index)]
                                 [newCol    (cond
                                             [(< count index)
-                                                  curr]
+                                                  currCol]
                                             [hghlght
-                                                  (curr
+                                                  (if (and
+                                                        (positive? incPerc)
+                                                        (<=
+                                                          (-
+                                                            winWidth
+                                                            (+
+                                                              offset
+                                                              currWidth))
+                                                          (/
+                                                            (-
+                                                              winWidth
+                                                              offset)
+                                                            2)))
+                                                      currCol
+                                                    (currCol
+                                                      #:rebuild-manually
+                                                        incPerc
+                                                        offset
+                                                        (-
+                                                          (getmaxy window)
+                                                          pwHeight)))]
+                                            [else (currCol
                                                     #:rebuild-manually
-                                                      incPerc
+                                                      (if decrease decPerc 0)
                                                       offset
-                                                      (-
-                                                        (getmaxy window)
-                                                        pwHeight))]
-                                            [else (if decrease
-                                                      (curr
-                                                        #:rebuild-manually
-                                                          decPerc
-                                                          offset
-                                                          #f)
-                                                    curr)])])
+                                                      #f)])])
                            (when hghlght
                              (newCol #:highlight-column pwHeight #t))
 
