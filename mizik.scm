@@ -2,7 +2,7 @@
 !#
 (use-modules (mpd)
              (ncurses curses))
-(include     "./windows3.scm")
+(include     "./windows4.scm")
 
 (setlocale LC_ALL "")
 
