@@ -17,16 +17,13 @@
                  [offset                 0])
         (let ([header (car remainingHeaders)])
           (if (null? (cdr remainingHeaders))
-              (let ([r (reverse
-                         (cons (column
-                                 window
-                                 (cdr header)
-                                 (car header)
-                                 '()
-                                 offset
-                                 (cons #f (- windowWidth offset))) result))])
-                (refresh window)
-                r)
+              (reverse (cons (column
+                               window
+                               (cdr header)
+                               (car header)
+                               '()
+                               offset
+                               (cons #f (- windowWidth offset))) result))
             (let ([col (let ([headerTitle (car header)])
                          (column
                            window
@@ -34,9 +31,8 @@
                            headerTitle
                            '()
                            offset
-                           (cons #t (/
-                                      (string-length headerTitle)
-                                      totalLenOfEachHeader))))])
+                           (cons #t (/ (string-length
+                                         headerTitle) totalLenOfEachHeader))))])
               (loop
                 (cons col result)
                 (cdr remainingHeaders)
@@ -183,7 +179,65 @@
   (define (columned-window window       playWindow mpdClient
                            masterList   allColumns isInSelectionMode
                            highlightPos begPos     endPos)
-    (+ 1 1))
+    (define (calculate-height)
+      (- (getmaxy window) (playWindow #:get-height)))
+
+    (chgat window -1 A_REVERSE 0 #:x 0 #:y 0)
+    (if (>= highlightPos (calculate-height))
+        (error highlightPos)
+      (when (not (car isInSelectionMode))
+        (chgat window -1 A_REVERSE 0 #:x 0 #:y highlightPos)))
+
+    (refresh window)
+
+    (lambda (method . xs)
+      (case method
+        [(#:get-window)                    window]
+        [(#:get-max-y-x)        (getmaxyx window)]
+        [(#:get-max-y)          (getmaxy  window)]
+        [(#:get-max-x)          (getmaxx  window)]
+        [(#:is-in-mode)   (car isInSelectionMode)]
+        [(#:refresh)            (refresh  window)]
+        [(#:set-vol)      (mpd-connect mpdClient)
+                          (let ([newVol ((if (cadr xs) + -)
+                                          (assoc-ref
+                                            (get-mpd-response
+                                              (mpdStatus::status mpdClient))
+                                            'volume)
+                                          (car xs))])
+                            (mpdPlaybackOption::set-vol!
+                              mpdClient
+                              (cond
+                               [(> newVol 100)    100]
+                               [(< newVol   0)      0]
+                               [else           newVol])))
+                          (mpd-disconnect mpdClient)]
+        [(#:play)         (when (> highlightPos 0)
+                            (mpd-connect mpdClient)
+                            (mpdPlaybackControl::play
+                              mpdClient
+                              (+ begPos (1- highlightPos)))
+                            (mpd-disconnect mpdClient)
+                            (playWindow #:rebuild-play mpdClient))]
+        [(#:toggle-play)  (mpd-connect mpdClient)
+                          (if (string=? (assoc-ref
+                                          (get-mpd-response
+                                            (mpdStatus::status mpdClient))
+                                          'state) "play")
+                              (mpdPlaybackControl::pause mpdClient #t)
+                            (mpdPlaybackControl::pause mpdClient #f))
+                          (mpd-disconnect mpdClient)
+                          (playWindow #:rebuild-pause mpdClient)]
+        [(#:seek)         (mpd-connect mpdClient)
+                          (mpdPlaybackControl::seek-current mpdClient (car xs))
+                          (mpd-disconnect mpdClient)]
+        [(#:enter-select) (chgat window -1 A_NORMAL 0 #:x 0 #:y highlightPos)
+                          ((car allColumns) #:highlight-column
+                                            (playWindow #:get-height) #t)
+                          (columned-window window       playWindow mpdClient
+                                           masterList   allColumns (cons #t 0)
+                                           highlightPos begPos     endPos)]
+        [(#:rebuild)      (+ 1 1)])))
 
   (define* (play-window window runningThread sBox dBox)
     (define (calc-progress-bar elapsed totalTime stopped?)
