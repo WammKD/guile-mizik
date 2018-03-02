@@ -300,89 +300,87 @@
       (let ([status (get-mpd-response (mpdStatus::status mpdClient))])
         (mpd-disconnect mpdClient)
 
-        (let ([stateString (assoc-ref status 'state)]
-              [winHeight               (getmaxy win)])
-          (cond
-           [(string=? stateString "stop")
-                 (let ([winWidth              (getmaxx win)]
-                       [prevInfo (atomic-box-ref statusBox)]
-                       [dispSong    (list (cons "" normal))])
-                   (write-line win 0 dispSong #t)
-                   (when (or
-                           (not prevInfo)
-                           (not (and
-                                  (= winWidth (car prevInfo))
-                                  (prev-status-state=? prevInfo " ▪ "))))
-                     (let ([newStatus (list (cons
-                                              (string-append
-                                                " ▪ "
-                                                (calc-progress-bar 0 0 #t))
-                                              normal))])
-                       (write-line win 1 newStatus #t)
-                       (atomic-box-set! statusBox (list
-                                                    winWidth
-                                                    newStatus
-                                                    (cons 0 0)))))
-                   (atomic-box-set! displayedSongBox dispSong))]
-           [(string=? stateString "play")
-                 (mpd-connect mpdClient)
-                 (let ([song (get-mpd-response
-                               (mpdStatus::current-song mpdClient))])
-                   (mpd-disconnect mpdClient)
-                   (let* ([elapsed   (assoc-ref status 'elapsed)]
-                          [time      (assoc-ref song   'Time)]
-                          [newStatus (list (cons (string-append
-                                                   " ▶ "
-                                                   (calc-progress-bar
-                                                     elapsed
-                                                     time
-                                                     #f)) normal))]
-                          [dispSong (list
-                                      (cons " "                      normal)
-                                      (cons (assoc-ref song 'Title)  bold)
-                                      (cons " from "                 normal)
-                                      (cons (assoc-ref song 'Album)  bold)
-                                      (cons " by "                   normal)
-                                      (cons (assoc-ref song 'Artist) bold))])
-                     (write-line win 0 dispSong  #t)
-                     (write-line win 1 newStatus #t)
+        (case (string->symbol (assoc-ref status 'state))
+          [(stop)
+                (let ([winWidth              (getmaxx win)]
+                      [prevInfo (atomic-box-ref statusBox)]
+                      [dispSong    (list (cons "" normal))])
+                  (write-line win 0 dispSong #t)
+                  (when (or
+                          (not prevInfo)
+                          (not (and
+                                 (= winWidth (car prevInfo))
+                                 (prev-status-state=? prevInfo " ▪ "))))
+                    (let ([newStatus (list (cons
+                                             (string-append
+                                               " ▪ "
+                                               (calc-progress-bar 0 0 #t))
+                                             normal))])
+                      (write-line win 1 newStatus #t)
+                      (atomic-box-set! statusBox (list
+                                                   winWidth
+                                                   newStatus
+                                                   (cons 0 0)))))
+                  (atomic-box-set! displayedSongBox dispSong))]
+          [(play)
+                (mpd-connect mpdClient)
+                (let ([song (get-mpd-response
+                              (mpdStatus::current-song mpdClient))])
+                  (mpd-disconnect mpdClient)
+                  (let* ([elapsed   (assoc-ref status 'elapsed)]
+                         [time      (assoc-ref song   'Time)]
+                         [newStatus (list (cons (string-append
+                                                  " ▶ "
+                                                  (calc-progress-bar
+                                                    elapsed
+                                                    time
+                                                    #f))             normal))]
+                         [dispSong (list
+                                     (cons " "                      normal)
+                                     (cons (assoc-ref song 'Title)  bold)
+                                     (cons " from "                 normal)
+                                     (cons (assoc-ref song 'Album)  bold)
+                                     (cons " by "                   normal)
+                                     (cons (assoc-ref song 'Artist) bold))])
+                    (write-line win 0 dispSong  #t)
+                    (write-line win 1 newStatus #t)
 
-                     (atomic-box-set! statusBox        (list
-                                                         (getmaxx win)
-                                                         newStatus
-                                                         (cons elapsed time)))
-                     (atomic-box-set! displayedSongBox dispSong)))]
-           [(string=? stateString "pause")
-                 (let ([winWidth              (getmaxx win)]
-                       [prevInfo (atomic-box-ref statusBox)])
-                   (write-line win 0 (atomic-box-ref displayedSongBox) #t)
-
-                   (if (= winWidth (car prevInfo))
-                       (when (not (prev-status-state=? prevInfo " 𝍪 "))
-                         (let ([newStatus (list (cons
-                                                  (string-append
-                                                    " 𝍪 "
-                                                    (substring (caaadr
-                                                                 prevInfo) 3))
-                                                  (cdaadr prevInfo)))])
-                           (write-line win 1 newStatus #t)
-                           (atomic-box-set! statusBox (list
-                                                        winWidth
+                    (atomic-box-set! statusBox        (list
+                                                        (getmaxx win)
                                                         newStatus
-                                                        (caddr prevInfo)))))
-                     (let* ([prevTimes (caddr prevInfo)]
-                            [newStatus (list (cons (string-append
-                                                     " 𝍪 "
-                                                     (calc-progress-bar
-                                                       (car prevTimes)
-                                                       (cdr prevTimes)
-                                                       #f)) normal))])
-                       (write-line win 1 newStatus #t)
-                       (atomic-box-set! statusBox (list
-                                                    winWidth
-                                                    newStatus
-                                                    prevTimes)))))])
-          (refresh win)))
+                                                        (cons elapsed time)))
+                    (atomic-box-set! displayedSongBox dispSong)))]
+          [(pause)
+                (let ([winWidth              (getmaxx win)]
+                      [prevInfo (atomic-box-ref statusBox)])
+                  (write-line win 0 (atomic-box-ref displayedSongBox) #t)
+
+                  (if (= winWidth (car prevInfo))
+                      (when (not (prev-status-state=? prevInfo " 𝍪 "))
+                        (let ([newStatus (list (cons
+                                                 (string-append
+                                                   " 𝍪 "
+                                                   (substring (caaadr
+                                                                prevInfo) 3))
+                                                 (cdaadr prevInfo)))])
+                          (write-line win 1 newStatus #t)
+                          (atomic-box-set! statusBox (list
+                                                       winWidth
+                                                       newStatus
+                                                       (caddr prevInfo)))))
+                    (let* ([prevTimes (caddr prevInfo)]
+                           [newStatus (list (cons (string-append
+                                                    " 𝍪 "
+                                                    (calc-progress-bar
+                                                      (car prevTimes)
+                                                      (cdr prevTimes)
+                                                      #f))            normal))])
+                      (write-line win 1 newStatus #t)
+                      (atomic-box-set! statusBox (list
+                                                   winWidth
+                                                   newStatus
+                                                   prevTimes)))))])
+        (refresh win))
       (sleep 1)
       (set-display! win mpdClient statusBox displayedSongBox))
 
