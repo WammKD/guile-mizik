@@ -57,7 +57,7 @@
               (+ (col #:get-width) offset)))))))
 
   (define* (column window format-line
-                   header lines
+                   header columnLines
                    offset percentage  #:optional [formattedLines #f]
                                                  [setHeader      #f]
                                                  [setLines       #f])
@@ -67,22 +67,22 @@
                             (lambda (line)
                               (format-line
                                 (assoc-ref line (string->symbol header))))
-                            lines)))
+                            columnLines)))
     (define columnWidth (if (car percentage)
                             (round (* (cdr percentage) (cols)))
                           (cdr percentage)))
 
 
 
-    (define (check-height newLinesLength playWindowHeight)
+    (define (check-height lengthOfNewLines playWindowHeight)
       (let ([linesLength (1- (lines))])
-        (when (> newLinesLength linesLength)
+        (when (> lengthOfNewLines linesLength)
           (endwin)
           (error (string-append
                    "In procedure column#:add-new-line: additional line "
                    "pushes lines length to larger value "
-                   "(" (number->string newLinesLength) ") than window height "
-                   "(" (number->string    linesLength) ")")))))
+                   "(" (number->string lengthOfNewLines) ") than window height "
+                   "(" (number->string      linesLength) ")")))))
     (define (form-line-of-approp-len l)
       (let* ([line                (if l l "")]
              [ELLIPSIS                    "…"]
@@ -110,14 +110,14 @@
           [newLines  (if setLines
                          setLines
                        (map format-and-add body (iota (length body) 1)))]
-          [linesLen  (length lines)])
+          [linesLen  (length columnLines)])
       (lambda (method . xs)
         (case method
           [(#:get-width)                           columnWidth]
           [(#:get-tag)                 (symbol->string header)]
           [(#:get-header)                               header]
           [(#:get-formed-header)                     newHeader]
-          [(#:get-lines)                                 lines]
+          [(#:get-lines)                           columnLines]
           [(#:get-formatted)                              body]
           [(#:get-formed-lines)                       newLines]
           [(#:form-line-of-approp-len) form-line-of-approp-len]
@@ -141,11 +141,16 @@
                    window
                    format-line
                    header
-                   (append (: lines 0 index) (list line) (: lines index newLen))
+                   (append
+                     (: columnLines 0     index)
+                     (list line)
+                     (: columnLines index newLen))
                    offset
                    percentage
-                   (append (: body  0 index) (list
-                                               refLine)  (: body  index newLen))
+                   (append
+                     (: body 0     index)
+                     (list refLine)
+                     (: body index newLen))
                    newHeader
                    (append
                      (: newLines 0 index)
@@ -174,13 +179,13 @@
                (let ([perc (car xs)] [offSet (cadr xs)] [clrHt (caddr xs)])
                  (clear-lines window (if clrHt
                                          clrHt
-                                       (1+ (length lines))) 0 offSet)
+                                       (1+ (length columnLines))) 0 offSet)
 
                  (column
                    window
                    format-line
                    header
-                   lines
+                   columnLines
                    offSet
                    (if (car percentage)
                        (cons #t (let ([p (+ (cdr percentage) perc)])
@@ -326,7 +331,7 @@
           " / "
           tString)))
 
-    (define (write-line wind lineIndex lines rev?)
+    (define (write-line wind lineIndex linesToWrite rev?)
       (define funct (if rev? inverse-on inverse-off))
 
       (let ([x (fold
@@ -336,7 +341,7 @@
 
                    (+ result (string-length (car line))))
                  0
-                 lines)])
+                 linesToWrite)])
         (addchstr
           wind
           (funct (string-concatenate/shared
