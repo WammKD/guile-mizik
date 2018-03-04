@@ -1,6 +1,11 @@
 #!/usr/local/bin/guile
 !#
 
+(define-syntax if-let
+  (syntax-rules ()
+    [(_ ([binding value] ...) then else) (let ([binding value] ...)
+                                           (if (and binding ...) then else))]))
+
 (define (2+ num)
   (+ num 2))
 (define (2- num)

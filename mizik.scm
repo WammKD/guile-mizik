@@ -2,106 +2,89 @@
 !#
 (use-modules (mpd)
              (ncurses curses))
-(include     "./windows4.scm")
+(include     "./windows5.scm")
 
 (setlocale LC_ALL "")
 
-(define (main-loop standardScreen columnedWin pastDimensions)
-  (define newPastDimensions (getmaxyx standardScreen))
-  (define nextWindow        (if (not (equal? newPastDimensions pastDimensions))
-                                (columnedWin #:rebuild)
-                              columnedWin))
+(define (main-loop standardScreen columnedWin)
   (define char              (getch standardScreen))
 
   (cond
    [(equal? char KEY_NPAGE)    (main-loop
                                  standardScreen
-                                 (nextWindow #:move-cursor 10)
-                                 newPastDimensions)]
+                                 (columnedWin #:move-cursor 10))]
+   [(equal? char KEY_RESIZE)   (main-loop
+                                 standardScreen
+                                 (columnedWin #:rebuild))]
    [(not (equal? char #\q))    (main-loop
                                  standardScreen
-                                 nextWindow
-                                 newPastDimensions)]))
+                                 columnedWin)]))
 
 ;; Initialize the main screen and settings
-(let* ([stdscr                                              (initscr)]
-       [winWidth                                     (getmaxx stdscr)]
-       [bottWinHeight                          (- (getmaxy stdscr) 3)]
-       [  mainWin     (newwin bottWinHeight winWidth 0             0)]
-       [bottomWin     (newwin 3             winWidth bottWinHeight 0)])
+(define stdscr (initscr))
 
+;; Initialize the MPD client
+(define client (new-mpd-client))
 
-  ;; Initialize the MPD client
-  (define client (new-mpd-client))
-  (use-default-colors)
-  (noecho!)
-  (cbreak!)
-  (start-color!)
-  (keypad!    stdscr #t)
-  (keypad!   mainWin #t)
-  (keypad! bottomWin #t)
+(use-default-colors)
+(noecho!)
+(cbreak!)
+(start-color!)
+(keypad! stdscr #t)
 
-  (refresh    stdscr)
-  (refresh   mainWin)
-  (refresh bottomWin)
+(refresh stdscr)
 
 
 
-  (mpd-connect client)
+(mpd-connect client)
 
-  (mpdPlaybackOption::consume! client #f)
-  (mpdPlaylistCurrent::add!    client (assoc-ref
-                                        (car (get-mpd-response
-                                               (mpdDatabase::list-all client)))
-                                        'directory))
+(mpdPlaybackOption::consume! client #f)
+(mpdPlaylistCurrent::add!    client (assoc-ref
+                                      (car (get-mpd-response
+                                             (mpdDatabase::list-all client)))
+                                      'directory))
 
-  (main-loop
-    stdscr
-    (let loop ([w (windows::build-columned-window
-                    stdscr
-                    mainWin
-                    bottomWin
-                    (new-mpd-client)
-                    (cons "Track"  (lambda (track)
-                                     (let ([index (string-index track #\/)])
-                                       (if index
-                                           (substring track 0 index)
-                                         track))))
-                    (cons "Title"  (lambda (title)   title))
-                    (cons "Artist" (lambda (artist) artist))
-                    (cons "Album"  (lambda (album)   album))
-                    (cons "Time"   (lambda (time)
-                                     (let* ([r (inexact->exact
-                                                 (round (string->number time)))]
-                                            [m (number->string (quotient r 60))]
-                                            [s (number->string
-                                                 (remainder r 60))])
-                                       (string-append
-                                         m
-                                         ":"
-                                         (if (= (string-length s) 1)
-                                             (string-append "0" s)
-                                           s)))))
-                    (cons "Genre"  (lambda (genre) genre)))]
-               [s (get-mpd-response
-                    (mpdPlaylistCurrent::playlist-info client))])
-      w
-      ;; (if (null? s)
-      ;;     (begin
-      ;;       (mpd-disconnect client)
-      ;;       w)
-      ;;   (loop
-      ;;     (w #:add-new-line
-      ;;        (map
-      ;;          (lambda (x)
-      ;;            (if (number? (cdr x))
-      ;;                (cons (car x) (number->string (cdr x)))
-      ;;              x))
-      ;;          (car s))
-      ;;        #f)
-      ;;     (cdr s)))
-      )
-    (getmaxyx stdscr)))
+(main-loop
+  stdscr
+  (let loop ([w (windows::build-columned-window
+                  stdscr
+                  (new-mpd-client)
+                  (cons "Track"  (lambda (track)
+                                   (if-let ([index (string-index track #\/)])
+                                       (substring track 0 index)
+                                     track)))
+                  (cons "Title"  (lambda (title)   title))
+                  (cons "Artist" (lambda (artist) artist))
+                  (cons "Album"  (lambda (album)   album))
+                  (cons "Time"   (lambda (time)
+                                   (let* ([r (inexact->exact
+                                               (round (string->number time)))]
+                                          [m (number->string (quotient  r 60))]
+                                          [s (number->string (remainder r 60))])
+                                     (string-append
+                                       m
+                                       ":"
+                                       (if (= (string-length s) 1)
+                                           (string-append "0" s)
+                                         s)))))
+                  (cons "Genre"  (lambda (genre) genre)))]
+             [s (get-mpd-response (mpdPlaylistCurrent::playlist-info client))])
+    w
+    ;; (if (null? s)
+    ;;     (begin
+    ;;       (mpd-disconnect client)
+    ;;       w)
+    ;;   (loop
+    ;;     (w #:add-new-line
+    ;;        (map
+    ;;          (lambda (x)
+    ;;            (if (number? (cdr x))
+    ;;                (cons (car x) (number->string (cdr x)))
+    ;;              x))
+    ;;          (car s))
+    ;;        #f)
+    ;;     (cdr s)))
+    ))
 
 
 
