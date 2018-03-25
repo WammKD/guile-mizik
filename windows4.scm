@@ -111,6 +111,7 @@
       (lambda (method . xs)
         (case method
           [(#:get-width)                           columnWidth]
+          [(#:get-offset)                               offset]
           [(#:get-tag)                 (symbol->string header)]
           [(#:get-header)                               header]
           [(#:get-formed-header)                     newHeader]
@@ -118,6 +119,8 @@
           [(#:get-formatted)                              body]
           [(#:get-formed-lines)                       newLines]
           [(#:form-line-of-approp-len) form-line-of-approp-len]
+          [(#:get-percentage)
+                     (if (car percentage) (cdr percentage) #f)]
           [(#:highlight-column)
                (for-each
                  (lambda (index)

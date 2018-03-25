@@ -9,16 +9,36 @@
 (define (main-loop standardScreen columnedWin)
   (define char              (getch standardScreen))
 
-  (cond
-   [(equal? char KEY_NPAGE)    (main-loop
-                                 standardScreen
-                                 (columnedWin #:move-cursor 10))]
-   [(equal? char KEY_RESIZE)   (main-loop
-                                 standardScreen
-                                 (columnedWin #:rebuild))]
-   [(not (equal? char #\q))    (main-loop
-                                 standardScreen
-                                 columnedWin)]))
+  (if (equal? char KEY_RESIZE)
+      (main-loop standardScreen (columnedWin #:rebuild))
+    (if (columnedWin #:is-in-mode)
+        (cond
+         [(equal? char KEY_LEFT)     (main-loop
+                                       standardScreen
+                                       (columnedWin   #:move-select -1))]
+         [(equal? char KEY_RIGHT)    (main-loop
+                                       standardScreen
+                                       (columnedWin   #:move-select  1))]
+         [(equal? char #\=)          (main-loop
+                                       standardScreen
+                                       (columnedWin #:change-select  1))]
+         [(equal? char #\-)          (main-loop
+                                       standardScreen
+                                       (columnedWin #:change-select -1))]
+         [(not (equal? char #\q)) (main-loop standardScreen columnedWin)])
+      (cond
+       [(equal? char KEY_NPAGE)    (main-loop
+                                     standardScreen
+                                     (columnedWin #:move-cursor 10))]
+       [(equal? char KEY_RESIZE)   (main-loop
+                                     standardScreen
+                                     (columnedWin #:rebuild))]
+       [(equal? char #\s)          (main-loop
+                                     standardScreen
+                                     (columnedWin #:enter-select))]
+       [(not (equal? char #\q))    (main-loop
+                                     standardScreen
+                                     columnedWin)]))))
 
 ;; Initialize the main screen and settings
 (define stdscr (initscr))

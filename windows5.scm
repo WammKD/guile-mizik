@@ -4,6 +4,14 @@
 (include     "./util.scm")
 
 (define (windows::build-columned-window stdscr mpd . captions)
+  (define (clear-lines win numberOfLines startingVertIndex startingHorizIndex)
+    (for-each
+      (lambda (lineIndex) (move win lineIndex startingHorizIndex) (clrtoeol win))
+      (iota numberOfLines startingVertIndex)))
+
+  (define (calc-column-width percentage)
+    (round (* percentage (cols))))
+
   (define (build-columns window headers)
     (let ([windowWidth          (cols)]
           [totalLenOfEachHeader (fold
@@ -69,7 +77,7 @@
                                 (assoc-ref line (string->symbol header))))
                             columnLines)))
     (define columnWidth (if (car percentage)
-                            (round (* (cdr percentage) (cols)))
+                            (calc-column-width (cdr percentage))
                           (cdr percentage)))
 
 
@@ -114,6 +122,7 @@
       (lambda (method . xs)
         (case method
           [(#:get-width)                           columnWidth]
+          [(#:get-offset)                               offset]
           [(#:get-tag)                 (symbol->string header)]
           [(#:get-header)                               header]
           [(#:get-formed-header)                     newHeader]
@@ -121,6 +130,8 @@
           [(#:get-formatted)                              body]
           [(#:get-formed-lines)                       newLines]
           [(#:form-line-of-approp-len) form-line-of-approp-len]
+          [(#:get-percentage)
+                     (if (car percentage) (cdr percentage) #f)]
           [(#:highlight-column)
                (for-each
                  (lambda (index)

@@ -5,6 +5,9 @@
   (syntax-rules ()
     [(_ ([binding value] ...) then else) (let ([binding value] ...)
                                            (if (and binding ...) then else))]))
+(define-syntax return-if
+  (syntax-rules ()
+    [(_ ret else) (if ret ret else)]))
 
 (define (2+ num)
   (+ num 2))
