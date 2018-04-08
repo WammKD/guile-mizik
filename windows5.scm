@@ -45,24 +45,29 @@
                 (cons col result)
                 restOfRemainingHeaders
                 (+ (col #:get-width) offset))))))))
-  (define (rebuild-columns window lines currentColumns playWindowHeight)
-    (let loop ([result                      '()]
-               [remainingColumns currentColumns]
-               [offset                        0])
+  (define (rebuild-columns window         lines
+                           currentColumns playWindowHeight selectionStatus)
+    (define (determine-highlight columnInQuestion columnIndex)
+      (when (and (car selectionStatus) (= columnIndex (cdr selectionStatus)))
+        (columnInQuestion #:highlight-column playWindowHeight #t)))
+
+    (let loop ([result '()] [remainingColumns currentColumns]
+               [offset   0] [index                         0])
       (let ([firstColumn            (car remainingColumns)]
             [restOfRemainingColumns (cdr remainingColumns)])
         (if (null? restOfRemainingColumns)
-            (reverse (cons (firstColumn #:rebuild-with-size
-                                          lines
-                                          offset
-                                          (- (cols) offset)
-                                          playWindowHeight) result))
+            (let ([col (firstColumn #:rebuild-with-size
+                                      lines             offset
+                                      (- (cols) offset) playWindowHeight)])
+              (determine-highlight col index)
+
+              (reverse (cons col result)))
           (let ([col (firstColumn
                        #:rebuild-with-size lines offset #f playWindowHeight)])
-            (loop
-              (cons col result)
-              restOfRemainingColumns
-              (+ (col #:get-width) offset)))))))
+            (determine-highlight col index)
+
+            (loop (cons col result)            restOfRemainingColumns
+                  (+ (col #:get-width) offset) (1+ index)))))))
 
   (define* (column window format-line
                    header columnLines
@@ -453,7 +458,8 @@
                     window
                     (: masterList newBegPos newEndPos)
                     allColumns
-                    (pw #:get-height))
+                    (pw #:get-height)
+                    isInSelectionMode)
                   isInSelectionMode
                   (if (> (- listLen begPos) linesHeight)
                       (- (1+ currSongIndx) newBegPos)
