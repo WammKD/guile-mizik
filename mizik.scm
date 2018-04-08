@@ -91,9 +91,7 @@
                   (cons "Genre"  (lambda (genre) genre)))]
              [s (get-mpd-response (mpdPlaylistCurrent::playlist-info client))])
     (if (null? s)
-        (begin
-          (mpd-disconnect client)
-          w)
+        (begin (mpd-disconnect client) w)
       (loop
         (w #:add-new-line
            (map
@@ -103,8 +101,7 @@
                  x))
              (car s))
            #f)
-        (cdr s)))
-    ))
+        (cdr s)))))
 
 
 
