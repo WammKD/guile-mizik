@@ -285,11 +285,11 @@
                 (columned-window window       playWindow mpdClient
                                  masterList   allColumns (cons #t realNewInd)
                                  highlightPos begPos     endPos))]
-       [(#:change-select)
+        [(#:change-select)
              (when (not (car isInSelectionMode))
                (endwin)
                (error (string-append
-                        "In procedure columned-window#:move-select: can't "
+                        "In procedure columned-window#:change-select: can't "
                         "increase selected column while not in Selection "
                         "Mode.")))
              (columned-window
