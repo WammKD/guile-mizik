@@ -59,6 +59,7 @@
 (mpd-connect client)
 
 (mpdPlaybackOption::consume! client #f)
+(mpdPlaylistCurrent::clear!  client)
 (mpdPlaylistCurrent::add!    client (assoc-ref
                                       (car (get-mpd-response
                                              (mpdDatabase::list-all client)))
@@ -89,23 +90,20 @@
                                          s)))))
                   (cons "Genre"  (lambda (genre) genre)))]
              [s (get-mpd-response (mpdPlaylistCurrent::playlist-info client))])
-    (mpd-disconnect client)
-
-    w
-    ;; (if (null? s)
-    ;;     (begin
-    ;;       (mpd-disconnect client)
-    ;;       w)
-    ;;   (loop
-    ;;     (w #:add-new-line
-    ;;        (map
-    ;;          (lambda (x)
-    ;;            (if (number? (cdr x))
-    ;;                (cons (car x) (number->string (cdr x)))
-    ;;              x))
-    ;;          (car s))
-    ;;        #f)
-    ;;     (cdr s)))
+    (if (null? s)
+        (begin
+          (mpd-disconnect client)
+          w)
+      (loop
+        (w #:add-new-line
+           (map
+             (lambda (x)
+               (if (number? (cdr x))
+                   (cons (car x) (number->string (cdr x)))
+                 x))
+             (car s))
+           #f)
+        (cdr s)))
     ))
 
 
