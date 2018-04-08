@@ -261,9 +261,15 @@
                           (mpd-disconnect mpdClient)]
         [(#:enter-select) (chgat window -1 A_NORMAL 0 #:x 0 #:y highlightPos)
                           ((car allColumns) #:highlight-column
-                                            (playWindow #:get-height) #t)
+                                              (playWindow #:get-height) #t)
                           (columned-window window       playWindow mpdClient
                                            masterList   allColumns (cons #t 0)
+                                           highlightPos begPos     endPos)]
+        [(#:leave-select) ;; (chgat window -1 A_NORMAL 0 #:x 0 #:y highlightPos)
+                          ((list-ref allColumns (cdr isInSelectionMode))
+                            #:highlight-column (playWindow #:get-height) #f)
+                          (columned-window window       playWindow mpdClient
+                                           masterList   allColumns (cons #f #f)
                                            highlightPos begPos     endPos)]
         [(#:move-select)
               (when (not (car isInSelectionMode))
