@@ -392,6 +392,35 @@
                highlightPos
                begPos
                endPos)]
+        [(#:add-new-line)
+              (let* ([line                                     (car xs)]
+                     [masterLen                     (length masterList)]
+                     [winHeight                      (calculate-height)]
+                     [index          (if (cadr xs) (cadr xs) masterLen)]
+                     [l?         (and
+                                   (>= index begPos)
+                                   (< (- index begPos) (1- winHeight)))]
+                     [inc?      (< (- masterLen begPos) (1- winHeight))])
+                (columned-window
+                  window
+                  playWindow
+                  mpdClient
+                  (append
+                    (: masterList 0 index)
+                    (list line)
+                    (: masterList index))
+                  (if l?
+                      (let ([modPos (- index begPos)])
+                        (map
+                          (lambda (col)
+                            (col #:add-new-line line modPos
+                                                inc? (playWindow #:get-height)))
+                          allColumns))
+                    allColumns)
+                  isInSelectionMode
+                  highlightPos
+                  begPos
+                  (if inc? (1+ endPos) endPos)))]
         [(#:rebuild)
               (erase window)
               (let* ([pw            (playWindow #:rebuild-size)]
