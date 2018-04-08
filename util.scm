@@ -14,6 +14,9 @@
 (define (2- num)
   (- num 2))
 
+(define (caddddr lst)
+  (car (cddddr lst)))
+
 (define (pos-or-to-zero num)
   (if (negative? num) 0 num))
 
