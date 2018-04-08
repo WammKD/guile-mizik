@@ -89,6 +89,8 @@
                                          s)))))
                   (cons "Genre"  (lambda (genre) genre)))]
              [s (get-mpd-response (mpdPlaylistCurrent::playlist-info client))])
+    (mpd-disconnect client)
+
     w
     ;; (if (null? s)
     ;;     (begin
