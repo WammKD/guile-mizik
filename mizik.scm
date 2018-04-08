@@ -25,6 +25,13 @@
          [(equal? char #\-)          (main-loop
                                        standardScreen
                                        (columnedWin #:change-select -1))]
+         [(or
+            (equal? char 13)
+            (equal? char 10)
+            (equal? char KEY_ENTER)
+            (equal? char #\newline)) (main-loop
+                                       standardScreen
+                                       (columnedWin #:leave-select))]
          [(not (equal? char #\q)) (main-loop standardScreen columnedWin)])
       (cond
        [(equal? char KEY_NPAGE)    (main-loop
