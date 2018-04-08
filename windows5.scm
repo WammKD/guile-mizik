@@ -182,23 +182,22 @@
                                                    (cons #f perc)
                                                  percentage)))]
           [(#:rebuild-manually)
-               (let ([perc (car xs)] [offSet (cadr xs)] [clrHt (caddr xs)])
+               (let ([newPercentage (car   xs)]
+                     [newOffset     (cadr  xs)]
+                     [clrHt         (caddr xs)])
                  (clear-lines window (if clrHt
                                          clrHt
-                                       (1+ (length columnLines))) 0 offSet)
+                                       (1+ (length columnLines))) 0 newOffset)
 
                  (column
                    window
                    format-line
                    header
                    columnLines
-                   offSet
+                   newOffset
                    (if (car percentage)
-                       (cons #t (let ([p (+ (cdr percentage) perc)])
-                                  (if (<= (+ p perc perc) 0)
-                                      (cdr percentage)
-                                    p)))
-                     (cons #f (- (cols) offSet)))))]))))
+                       (cons #t newPercentage)
+                     (cons #f (- (cols) newOffset)))))]))))
 
   (define (columned-window window       playWindow mpdClient
                            masterList   allColumns isInSelectionMode
