@@ -123,7 +123,7 @@
         (case method
           [(#:get-width)                           columnWidth]
           [(#:get-offset)                               offset]
-          [(#:get-tag)                 (symbol->string header)]
+          [(#:get-tag)                 (string->symbol header)]
           [(#:get-header)                               header]
           [(#:get-formed-header)                     newHeader]
           [(#:get-lines)                           columnLines]
@@ -171,13 +171,8 @@
                          format-and-add
                          sub
                          (iota (length sub) (2+ index)))))))]
-          [(#:rebuild)                                 (column
-                                                         window
-                                                         format-line
-                                                         header
-                                                         (car xs)
-                                                         offset
-                                                         percentage)]
+          [(#:rebuild)
+                (column window format-line header (car xs) offset percentage)]
           [(#:rebuild-with-size)
                 (check-height (length (car xs)) (cadddr xs))
 
