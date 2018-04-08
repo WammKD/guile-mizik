@@ -10,7 +10,7 @@
       (iota numberOfLines startingVertIndex)))
 
   (define (calc-column-width percentage)
-    (round (* percentage (cols))))
+    (floor (* percentage (cols))))
 
   (define (build-columns window headers)
     (let ([windowWidth          (cols)]
@@ -260,6 +260,138 @@
                           (columned-window window       playWindow mpdClient
                                            masterList   allColumns (cons #t 0)
                                            highlightPos begPos     endPos)]
+        [(#:move-select)
+              (when (not (car isInSelectionMode))
+                (endwin)
+                (error (string-append
+                         "In procedure columned-window#:move-select: can't "
+                         "move selected columns while not in Selection Mode.")))
+              (let* ([moveAmount                             (car xs)]
+                     [moveIsNeg                (negative? moveAmount)]
+                     [lastIndex              (1- (length allColumns))]
+                     [oldIndex                (cdr isInSelectionMode)]
+                     [newIndex                (+ oldIndex moveAmount)]
+                     [realNewInd (cond
+                                  [(< newIndex 0)                 0]
+                                  [(> newIndex lastIndex) lastIndex]
+                                  [else                    newIndex])]
+                     [playHeight            (playWindow #:get-height)])
+                ((list-ref allColumns oldIndex)   #:highlight-column
+                                                    playHeight
+                                                    #f)
+                ((list-ref allColumns realNewInd) #:highlight-column
+                                                    playHeight
+                                                    #t)
+                (columned-window window       playWindow mpdClient
+                                 masterList   allColumns (cons #t realNewInd)
+                                 highlightPos begPos     endPos))]
+       [(#:change-select)
+             (when (not (car isInSelectionMode))
+               (endwin)
+               (error (string-append
+                        "In procedure columned-window#:move-select: can't "
+                        "increase selected column while not in Selection "
+                        "Mode.")))
+             (columned-window
+               window
+               playWindow
+               mpdClient
+               masterList
+               (let* ([index          (cdr isInSelectionMode)]
+                      [unalteredCols   (: allColumns 0 index)]
+                      [colsToCheck       (: allColumns index)]
+                      [selectedCol          (car colsToCheck)]
+                      [colsAfterSel         (cdr colsToCheck)]
+                      [lastIndex     (1- (length allColumns))]
+                      [delta                         (car xs)])
+                 (if (or
+                       (= index lastIndex)
+                       (and (negative? delta) (>= 3 (selectedCol #:get-width)))
+                       (and
+                         (positive? delta)
+                         (every (lambda (col)
+                                  (<= (col #:get-width) 3)) colsAfterSel)))
+                     allColumns
+                   (let* ([winWidth                                 (cols)]
+                          [colsToRight     (-       lastIndex       index)]
+                          [initPerc        (/           delta    winWidth)]
+                          [otherPercs      (/ (* initPerc -1) colsToRight)]
+                          [newSelPerc  (+ (selectedCol
+                                            #:get-percentage)    initPerc)]
+                          [newSelWidth      (calc-column-width newSelPerc)]
+                          [nextOffset  (+ (selectedCol
+                                            #:get-offset)     newSelWidth)]
+                          [colsToAlter (map
+                                         (lambda (col)
+                                           (list
+                                             (return-if (col #:get-percentage)
+                                               (col #:get-width))
+                                             #f  ; This'll always be overwritten
+                                             col))
+                                         colsAfterSel)])
+                     (let loop ([finalCols             '()]
+                                [remainingCols colsToAlter]
+                                [alteration?            #f]
+                                [finalOffset    nextOffset]
+                                [countdown        initPerc])
+                       (cond
+                        [(and (null? remainingCols) (or
+                                                      (<= countdown 0)
+                                                      (not alteration?)))
+                              (let* ([colHeight (- (lines) (playWindow
+                                                             #:get-height))]
+                                     [process-cols
+                                           (lambda (colList)
+                                             ((caddr colList) #:rebuild-manually
+                                                                (car  colList)
+                                                                (cadr colList)
+                                                                colHeight))])
+                                (append
+                                  unalteredCols
+                                  (list
+                                    (selectedCol #:rebuild-manually
+                                                   newSelPerc
+                                                   (selectedCol #:get-offset)
+                                                   colHeight))
+                                  (map process-cols (reverse finalCols))
+                                  (map process-cols       remainingCols)))]
+                        [(and (null? remainingCols) alteration?)
+                              (loop '() (reverse finalCols)
+                                    #f  nextOffset          countdown)]
+                        [(null? (cdr remainingCols))
+                              (let* ([curr               (car remainingCols)]
+                                     [newWid        (- winWidth finalOffset)]
+                                     [alter?                    (> newWid 3)]
+                                     [finalWid (if alter? newWid (car curr))])
+                                (loop
+                                  (cons
+                                    (list finalWid finalOffset (caddr curr))
+                                    finalCols)
+                                  (cdr remainingCols)
+                                  (or alteration? alter?)
+                                  (+ finalOffset finalWid)
+                                  (if alter?
+                                      (+ countdown otherPercs)
+                                    countdown)))]
+                        [else (let* ([curr                 (car remainingCols)]
+                                     [newPerc        (+ (car curr) otherPercs)]
+                                     [newWid       (calc-column-width newPerc)]  ; It's much slower, though
+                                     [alter?                     (>= newWid 3)]  ; (> (calc-column-width (car curr)) 3)
+                                     [finalPerc (if alter? newPerc (car curr))])
+                                (loop
+                                  (cons
+                                    (list finalPerc finalOffset (caddr curr))
+                                    finalCols)
+                                  (cdr remainingCols)
+                                  (or alteration? alter?)
+                                  (+ finalOffset (calc-column-width finalPerc))
+                                  (if alter?
+                                      (+ countdown otherPercs)
+                                    countdown)))])))))
+               isInSelectionMode
+               highlightPos
+               begPos
+               endPos)]
         [(#:rebuild)
               (erase window)
               (let* ([pw            (playWindow #:rebuild-size)]
