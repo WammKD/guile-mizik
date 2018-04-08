@@ -338,8 +338,8 @@
                         [(and (null? remainingCols) (or
                                                       (<= countdown 0)
                                                       (not alteration?)))
-                              (let* ([colHeight (- (lines) (playWindow
-                                                             #:get-height))]
+                              (let* ([playHeight   (playWindow #:get-height)]
+                                     [colHeight       (- (lines) playHeight)]
                                      [process-cols
                                            (lambda (colList)
                                              ((caddr colList) #:rebuild-manually
@@ -348,11 +348,13 @@
                                                                 colHeight))])
                                 (append
                                   unalteredCols
-                                  (list
-                                    (selectedCol #:rebuild-manually
-                                                   newSelPerc
-                                                   (selectedCol #:get-offset)
-                                                   colHeight))
+                                  (let ([col (selectedCol #:rebuild-manually
+                                                            newSelPerc
+                                                            (selectedCol
+                                                              #:get-offset)
+                                                            colHeight)])
+                                    (col #:highlight-column playHeight #t)
+                                    (list col))
                                   (map process-cols (reverse finalCols))
                                   (map process-cols       remainingCols)))]
                         [(and (null? remainingCols) alteration?)
