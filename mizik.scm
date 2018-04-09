@@ -7,7 +7,7 @@
 (setlocale LC_ALL "")
 
 (define (main-loop standardScreen columnedWin)
-  (define char              (getch standardScreen))
+  (define char (getch standardScreen))
 
   (if (equal? char KEY_RESIZE)
       (main-loop standardScreen (columnedWin #:rebuild))
