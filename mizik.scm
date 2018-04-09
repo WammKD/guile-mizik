@@ -9,70 +9,82 @@
 (define (main-loop standardScreen columnedWin)
   (define char (getch standardScreen))
 
-  (if (equal? char KEY_RESIZE)
-      (main-loop standardScreen (columnedWin #:rebuild))
-    (if (columnedWin #:is-in-mode)
-        (cond
-         [(equal? char KEY_LEFT)     (main-loop
-                                       standardScreen
-                                       (columnedWin   #:move-select -1))]
-         [(equal? char KEY_RIGHT)    (main-loop
-                                       standardScreen
-                                       (columnedWin   #:move-select  1))]
-         [(equal? char #\=)          (main-loop
-                                       standardScreen
-                                       (columnedWin #:change-select  1))]
-         [(equal? char #\-)          (main-loop
-                                       standardScreen
-                                       (columnedWin #:change-select -1))]
-         [(or
-            (equal? char 13)
-            (equal? char 10)
-            (equal? char KEY_ENTER)
-            (equal? char #\newline)) (main-loop
-                                       standardScreen
-                                       (columnedWin #:leave-select))]
-         [(not (equal? char #\q)) (main-loop standardScreen columnedWin)])
-      (cond
-       [(equal? char KEY_NPAGE)    (main-loop
-                                     standardScreen
-                                     (columnedWin #:move-cursor 10))]
-       [(equal? char #\n)          (main-loop
-                                     standardScreen
-                                     (columnedWin #:move-cursor  3))]
-       [(equal? char KEY_DOWN)     (main-loop
-                                     standardScreen
-                                     (columnedWin #:move-cursor  1))]
-       [(equal? char KEY_PPAGE)    (main-loop
-                                     standardScreen
-                                     (columnedWin #:move-cursor -10))]
-       [(equal? char #\p)          (main-loop
-                                     standardScreen
-                                     (columnedWin #:move-cursor -3))]
-       [(equal? char KEY_UP)       (main-loop
-                                     standardScreen
-                                     (columnedWin #:move-cursor -1))]
-       [(or
-          (equal? char 13)
-          (equal? char 10)
-          (equal? char KEY_ENTER)
-          (equal? char #\newline)) (columnedWin #:play)
-                                   (main-loop standardScreen columnedWin)]
-       [(equal? char #\space)      (columnedWin #:toggle-play)
-                                   (main-loop standardScreen columnedWin)]
-       [(equal? char #\v)          (columnedWin #:set-vol 5 #t)
-                                   (main-loop standardScreen columnedWin)]
-       [(equal? char #\V)          (columnedWin #:set-vol 5 #f)
-                                   (main-loop standardScreen columnedWin)]
-       [(equal? char KEY_RESIZE)   (main-loop
-                                     standardScreen
-                                     (columnedWin #:rebuild))]
-       [(equal? char #\s)          (main-loop
-                                     standardScreen
-                                     (columnedWin #:enter-select))]
-       [(not (equal? char #\q))    (main-loop
-                                     standardScreen
-                                     columnedWin)]))))
+  (when (not (equal? char #\q))
+    (main-loop
+      standardScreen
+      (if (equal? char KEY_RESIZE)
+          (columnedWin #:rebuild)
+        (if (columnedWin #:is-in-mode)
+            (case char  ; Stupid case doesn't recognize variables
+              [(260) #| KEY_LEFT  |# (columnedWin   #:move-select -1)]
+              [(261) #| KEY_RIGHT |# (columnedWin   #:move-select  1)]
+              [(#\=)                 (columnedWin #:change-select  1)]
+              [(#\-) #| KEY_ENTER |# (columnedWin #:change-select -1)]
+              [(13 10 343 #\newline) (columnedWin #:leave-select)]
+              [else                  columnedWin])
+          (case char
+            [(338)#| KEY_NPAGE |# (columnedWin #:move-cursor  10)]
+            [(#\n)                (columnedWin #:move-cursor   3)]
+            [(258)#| KEY_DOWN  |# (columnedWin #:move-cursor   1)]
+            [(339)#| KEY_PPAGE |# (columnedWin #:move-cursor -10)]
+            [(#\p)                (columnedWin #:move-cursor  -3)]
+            [(259)#| KEY_UP    |# (columnedWin #:move-cursor  -1)]
+            [(13
+              10
+              343  ; KEY_ENTER
+              #\newline) (columnedWin #:play)         columnedWin]
+            [(#\space)   (columnedWin #:toggle-play)  columnedWin]
+            [(#\v)       (columnedWin #:set-vol 5 #t) columnedWin]
+            [(#\V)       (columnedWin #:set-vol 5 #f) columnedWin]
+            [(#\esc)     (nodelay! (columnedWin #:get-window) #t)
+                         (let* ([w (columnedWin #:get-window)]
+                                [c                  (getch w)])
+                           (nodelay! w #f)
+
+                           ;; If false, the user just pressed ESC
+                           (if c
+                               (begin
+                                 (when (and
+                                         (equal? c         #\[)
+                                         (equal? (getch w) #\1)
+                                         (equal? (getch w) #\;))
+                                   (let ([newC (getch w)])
+                                     (case newC
+                                       ;; Shift
+                                       [(#\2) (let ([nnC (getch w)])
+                                                (case nnC
+                                                  [(#\C) (columnedWin
+                                                           #:seek "+5")]
+                                                  [(#\D) (columnedWin
+                                                           #:seek "-5")]))]
+                                       ;; Alt
+                                       [(#\3) #t]
+                                       ;; Alt + Shift
+                                       [(#\4) #t]
+                                       ;; Ctrl
+                                       [(#\5) (let ([nnC (getch w)])
+                                                (case nnC
+                                                  [(#\C) (columnedWin
+                                                           #:seek "+60")]
+                                                  [(#\D) (columnedWin
+                                                           #:seek "-60")]))]
+                                       ;; Ctrl + Shift
+                                       [(#\6) (let ([nnC (getch w)])
+                                                (case nnC
+                                                  [(#\C) (columnedWin
+                                                           #:seek "+10")]
+                                                  [(#\D) (columnedWin
+                                                           #:seek "-10")]))]
+                                       ;; Ctrl + Alt
+                                       [(#\7) #t]
+                                       ;; Ctrl + Shift + Alt
+                                       [(#\8) #t])))
+
+                                 columnedWin)
+                             ;; Escape key, only
+                             columnedWin))]
+            [(#\s)                   (columnedWin #:enter-select)]
+            [else                                     columnedWin]))))))
 
 ;; Initialize the main screen and settings
 (define stdscr (initscr))
