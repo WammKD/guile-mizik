@@ -405,6 +405,132 @@
                highlightPos
                begPos
                endPos)]
+        [(#:move-cursor)
+              (let ([newPos               (+ highlightPos (car xs))]
+                    [winLen                      (calculate-height)]
+                    [listLen                    (length masterList)]
+                    [lastVisibleLineOfWin         (- endPos begPos)])
+                (when (not (= highlightPos 0))
+                  (chgat window -1 A_NORMAL 0 #:x 0 #:y highlightPos))
+
+                (cond
+                 [(between? 0 newPos (1+ lastVisibleLineOfWin))
+                       (columned-window
+                         window
+                         playWindow
+                         mpdClient
+                         masterList
+                         allColumns
+                         isInSelectionMode
+                         (if (and (negative? newPos) (zero? highlightPos))
+                             0
+                           (if (< newPos 1) 1 (if (< listLen newPos)
+                                                  (1- listLen)
+                                                newPos)))
+                         begPos
+                         endPos)]
+                 [(or
+                    (and
+                      (> newPos       lastVisibleLineOfWin)
+                      (= highlightPos lastVisibleLineOfWin)
+                      (= endPos       listLen))
+                    (and
+                      (< newPos       1)
+                      (= highlightPos 1)
+                      (= begPos       0))
+                    (and
+                      (< newPos       0)
+                      (= highlightPos 0)))
+                       (columned-window window       playWindow
+                                        mpdClient    masterList
+                                        allColumns   isInSelectionMode
+                                        highlightPos begPos            endPos)]
+                 [(and (< newPos 1) (< (+ begPos (car xs)) 0))
+                       (clear-lines window lastVisibleLineOfWin 1 0)
+                       (columned-window
+                         window
+                         playWindow
+                         mpdClient
+                         masterList
+                         (map
+                           (lambda (col)
+                             (col #:rebuild (: masterList 0 (1- winLen))))
+                           allColumns)
+                         isInSelectionMode
+                         1
+                         0
+                         (if (< (- listLen begPos) (1- winLen))
+                             listLen
+                           (1- winLen)))]
+                 [(and
+                    (> newPos lastVisibleLineOfWin)
+                    (> (+ begPos newPos) listLen))
+                       (let ([newBegPos (if (< (- listLen begPos) (1- winLen))
+                                            begPos
+                                          (- listLen (1- winLen)))]
+                             [newEndPos listLen])
+                         (clear-lines window lastVisibleLineOfWin 1 0)
+                         (columned-window
+                           window
+                           playWindow
+                           mpdClient
+                           masterList
+                           (map
+                             (lambda (col)
+                               (col #:rebuild
+                                      (: masterList newBegPos newEndPos)))
+                             allColumns)
+                           isInSelectionMode
+                           (- newEndPos newBegPos)
+                           newBegPos
+                           newEndPos))]
+                 [(and
+                    (> newPos lastVisibleLineOfWin)
+                    (< (- listLen (+ begPos (car xs))) (1- winLen)))
+                       (let ([newBegPos (if (< (- listLen begPos) (1- winLen))
+                                            begPos
+                                          (- listLen (1- winLen)))]
+                             [newEndPos listLen])
+                         (clear-lines window lastVisibleLineOfWin 1 0)
+                         (columned-window
+                           window
+                           playWindow
+                           mpdClient
+                           masterList
+                           (map
+                             (lambda (col)
+                               (col #:rebuild
+                                      (: masterList newBegPos newEndPos)))
+                             allColumns)
+                           isInSelectionMode
+                           (- winLen (- listLen (+ (1- begPos) newPos)))
+                           newBegPos
+                           newEndPos))]
+                 [(or (< newPos 1) (> newPos lastVisibleLineOfWin))
+                       (let ([newBegPos (+ begPos (car xs))]
+                             [newEndPos (if (and
+                                              (< newPos highlightPos)
+                                              (not (=
+                                                     (- endPos begPos)
+                                                     (1- winLen))))
+                                            endPos
+                                          (+ endPos (car xs)))])
+                         (clear-lines window lastVisibleLineOfWin 1 0)
+                         (columned-window
+                           window
+                           playWindow
+                           mpdClient
+                           masterList
+                           (map
+                             (lambda (col)
+                               (col #:rebuild
+                                      (: masterList newBegPos newEndPos)))
+                             allColumns)
+                           isInSelectionMode
+                           highlightPos
+                           newBegPos
+                           newEndPos))]
+                 [else (display "Purposeful Error")]))]
         [(#:add-new-line)
               (let* ([line                                     (car xs)]
                      [masterLen                     (length masterList)]
