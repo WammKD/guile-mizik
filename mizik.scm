@@ -37,6 +37,21 @@
        [(equal? char KEY_NPAGE)    (main-loop
                                      standardScreen
                                      (columnedWin #:move-cursor 10))]
+       [(equal? char #\n)          (main-loop
+                                     standardScreen
+                                     (columnedWin #:move-cursor  3))]
+       [(equal? char KEY_DOWN)     (main-loop
+                                     standardScreen
+                                     (columnedWin #:move-cursor  1))]
+       [(equal? char KEY_PPAGE)    (main-loop
+                                     standardScreen
+                                     (columnedWin #:move-cursor -10))]
+       [(equal? char #\p)          (main-loop
+                                     standardScreen
+                                     (columnedWin #:move-cursor -3))]
+       [(equal? char KEY_UP)       (main-loop
+                                     standardScreen
+                                     (columnedWin #:move-cursor -1))]
        [(equal? char KEY_RESIZE)   (main-loop
                                      standardScreen
                                      (columnedWin #:rebuild))]
