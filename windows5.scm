@@ -265,8 +265,7 @@
                           (columned-window window       playWindow mpdClient
                                            masterList   allColumns (cons #t 0)
                                            highlightPos begPos     endPos)]
-        [(#:leave-select) ;; (chgat window -1 A_NORMAL 0 #:x 0 #:y highlightPos)
-                          ((list-ref allColumns (cdr isInSelectionMode))
+        [(#:leave-select) ((list-ref allColumns (cdr isInSelectionMode))
                             #:highlight-column (playWindow #:get-height) #f)
                           (columned-window window       playWindow mpdClient
                                            masterList   allColumns (cons #f #f)
@@ -603,7 +602,7 @@
     (define (prev-status-state=? previousInfo statusToCheckAgainst)
       (string=? (substring (caaadr previousInfo) 0 3) statusToCheckAgainst))
 
-    (define (calc-progress-bar elapsed totalTime stopped?)
+    (define (calc-progress-bar elapsed totalTime isStopped)
       (define (parse-seconds seconds)
         (let* ([rounded        (inexact->exact (round seconds))]
                [mins    (number->string (quotient  rounded 60))]
@@ -629,7 +628,7 @@
           " ["
           (string-concatenate/shared
             (make-list (pos-or-to-zero firstLength)                   "="))
-          (if stopped? "-" ">")
+          (if isStopped "-" ">")
           (string-concatenate/shared
             (make-list (pos-or-to-zero (- totalLength firstLength 1)) "-"))
           "] "
