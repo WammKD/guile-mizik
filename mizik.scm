@@ -52,6 +52,18 @@
        [(equal? char KEY_UP)       (main-loop
                                      standardScreen
                                      (columnedWin #:move-cursor -1))]
+       [(or
+          (equal? char 13)
+          (equal? char 10)
+          (equal? char KEY_ENTER)
+          (equal? char #\newline)) (columnedWin #:play)
+                                   (main-loop standardScreen columnedWin)]
+       [(equal? char #\space)      (columnedWin #:toggle-play)
+                                   (main-loop standardScreen columnedWin)]
+       [(equal? char #\v)          (columnedWin #:set-vol 5 #t)
+                                   (main-loop standardScreen columnedWin)]
+       [(equal? char #\V)          (columnedWin #:set-vol 5 #f)
+                                   (main-loop standardScreen columnedWin)]
        [(equal? char KEY_RESIZE)   (main-loop
                                      standardScreen
                                      (columnedWin #:rebuild))]
