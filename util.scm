@@ -17,6 +17,17 @@
 (define (caddddr lst)
   (car (cddddr lst)))
 
+(define (alist . xs)
+  (if (odd? (length xs))
+      (error "ERROR: In procedure alist: uneven amount of arguments")
+    (reverse (fold
+               (lambda (elem previous)
+                 (if (or (null? previous) (not (list? (car previous))))
+                     (cons (list elem) previous)
+                   (cons (cons (car (car previous)) elem) (cdr previous))))
+               '()
+               xs))))
+
 (define (pos-or-to-zero num)
   (if (negative? num) 0 num))
 
