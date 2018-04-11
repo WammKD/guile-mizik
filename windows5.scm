@@ -48,7 +48,9 @@
   (define (rebuild-columns window         lines
                            currentColumns playWindowHeight selectionStatus)
     (define (determine-highlight columnInQuestion columnIndex)
-      (when (and (car selectionStatus) (= columnIndex (cdr selectionStatus)))
+      (when (and
+              (assq-ref selectionStatus 'status)
+              (= columnIndex (assq-ref selectionStatus 'index)))
         (columnInQuestion #:highlight-column playWindowHeight #t)))
 
     (let loop ([result '()] [remainingColumns currentColumns]
@@ -205,7 +207,7 @@
                      (cons #f (- (cols) newOffset)))))]))))
 
   (define (columned-window window       playWindow mpdClient
-                           masterList   allColumns isInSelectionMode
+                           masterList   allColumns selectModeDetails
                            highlightPos begPos     endPos)
     (define (calculate-height)
       (- (lines) (playWindow #:get-height)))
@@ -213,19 +215,19 @@
     (chgat window -1 A_REVERSE 0 #:x 0 #:y 0)
     (if (>= highlightPos (calculate-height))
         (begin (endwin) (error highlightPos))
-      (when (not (car isInSelectionMode))
+      (when (not (assq-ref selectModeDetails 'status))
         (chgat window -1 A_REVERSE 0 #:x 0 #:y highlightPos)))
 
     (refresh window)
 
     (lambda (method . xs)
       (case method
-        [(#:get-window)                    window]
-        [(#:get-max-y-x)        (getmaxyx window)]
-        [(#:get-max-y)          (getmaxy  window)]
-        [(#:get-max-x)          (getmaxx  window)]
-        [(#:is-in-mode)   (car isInSelectionMode)]
-        [(#:refresh)            (refresh  window)]
+        [(#:get-window)                                 window]
+        [(#:get-max-y-x)                     (getmaxyx window)]
+        [(#:get-max-y)                       (getmaxy  window)]
+        [(#:get-max-x)                       (getmaxx  window)]
+        [(#:is-in-mode)   (assq-ref selectModeDetails 'status)]
+        [(#:refresh)                         (refresh  window)]
         [(#:set-vol)      (mpd-connect mpdClient)
                           (let ([newVol ((if (cadr xs) + -)
                                           (assoc-ref
@@ -262,16 +264,42 @@
         [(#:enter-select) (chgat window -1 A_NORMAL 0 #:x 0 #:y highlightPos)
                           ((car allColumns) #:highlight-column
                                               (playWindow #:get-height) #t)
-                          (columned-window window       playWindow mpdClient
-                                           masterList   allColumns (cons #t 0)
-                                           highlightPos begPos     endPos)]
-        [(#:leave-select) ((list-ref allColumns (cdr isInSelectionMode))
-                            #:highlight-column (playWindow #:get-height) #f)
-                          (columned-window window       playWindow mpdClient
-                                           masterList   allColumns (cons #f #f)
-                                           highlightPos begPos     endPos)]
+                          (columned-window
+                            window
+                            playWindow
+                            mpdClient
+                            masterList
+                            allColumns
+                            (alist 'status      #t
+                                   'index       0
+                                   'sortedIndex (assq-ref
+                                                  selectModeDetails
+                                                  'sortedIndex))
+                            highlightPos
+                            begPos
+                            endPos)]
+        [(#:leave-select)
+              (when (not (assq-ref selectModeDetails 'status))
+                (endwin)
+                (error (string-append
+                         "In procedure columned-window#:move-select: can't "
+                         "exit Selection Mode while not in Selection Mode.")))
+
+              ((list-ref allColumns (assq-ref selectModeDetails 'index))
+                #:highlight-column (playWindow #:get-height) #f)
+
+              (columned-window
+                window       playWindow
+                mpdClient    masterList
+                allColumns   (alist 'status      #f
+                                    'index       #f
+                                    'sortedIndex (assq-ref
+                                                   selectModeDetails
+                                                   'sortedIndex))
+                highlightPos begPos                                  endPos)]
+        [(#:sort-select)
         [(#:move-select)
-              (when (not (car isInSelectionMode))
+              (when (not (assq-ref selectModeDetails 'status))
                 (endwin)
                 (error (string-append
                          "In procedure columned-window#:move-select: can't "
@@ -279,7 +307,7 @@
               (let* ([moveAmount                             (car xs)]
                      [moveIsNeg                (negative? moveAmount)]
                      [lastIndex              (1- (length allColumns))]
-                     [oldIndex                (cdr isInSelectionMode)]
+                     [oldIndex    (assq-ref selectModeDetails 'index)]
                      [newIndex                (+ oldIndex moveAmount)]
                      [realNewInd (cond
                                   [(< newIndex 0)                 0]
@@ -292,11 +320,17 @@
                 ((list-ref allColumns realNewInd) #:highlight-column
                                                     playHeight
                                                     #t)
-                (columned-window window       playWindow mpdClient
-                                 masterList   allColumns (cons #t realNewInd)
-                                 highlightPos begPos     endPos))]
+                (columned-window
+                  window       playWindow
+                  mpdClient    masterList
+                  allColumns   (alist 'status      #t
+                                      'index       realNewInd
+                                      'sortedIndex (assq-ref
+                                                     selectModeDetails
+                                                     'sortedIndex))
+                  highlightPos begPos                                  endPos))]
         [(#:change-select)
-             (when (not (car isInSelectionMode))
+             (when (not (assq-ref selectModeDetails 'status))
                (endwin)
                (error (string-append
                         "In procedure columned-window#:change-select: can't "
@@ -307,13 +341,13 @@
                playWindow
                mpdClient
                masterList
-               (let* ([index          (cdr isInSelectionMode)]
-                      [unalteredCols   (: allColumns 0 index)]
-                      [colsToCheck       (: allColumns index)]
-                      [selectedCol          (car colsToCheck)]
-                      [colsAfterSel         (cdr colsToCheck)]
-                      [lastIndex     (1- (length allColumns))]
-                      [delta                         (car xs)])
+               (let* ([index         (assq-ref selectModeDetails 'index)]
+                      [unalteredCols              (: allColumns 0 index)]
+                      [colsToCheck                  (: allColumns index)]
+                      [selectedCol                     (car colsToCheck)]
+                      [colsAfterSel                    (cdr colsToCheck)]
+                      [lastIndex                (1- (length allColumns))]
+                      [delta                                    (car xs)])
                  (if (or
                        (= index lastIndex)
                        (and (negative? delta) (>= 3 (selectedCol #:get-width)))
@@ -400,7 +434,7 @@
                                   (if alter?
                                       (+ countdown otherPercs)
                                     countdown)))])))))
-               isInSelectionMode
+               selectModeDetails
                highlightPos
                begPos
                endPos)]
@@ -420,7 +454,7 @@
                          mpdClient
                          masterList
                          allColumns
-                         isInSelectionMode
+                         selectModeDetails
                          (if (and (negative? newPos) (zero? highlightPos))
                              0
                            (if (< newPos 1) 1 (if (< listLen newPos)
@@ -442,7 +476,7 @@
                       (= highlightPos 0)))
                        (columned-window window       playWindow
                                         mpdClient    masterList
-                                        allColumns   isInSelectionMode
+                                        allColumns   selectModeDetails
                                         highlightPos begPos            endPos)]
                  [(and (< newPos 1) (< (+ begPos (car xs)) 0))
                        (clear-lines window lastVisibleLineOfWin 1 0)
@@ -455,7 +489,7 @@
                            (lambda (col)
                              (col #:rebuild (: masterList 0 (1- winLen))))
                            allColumns)
-                         isInSelectionMode
+                         selectModeDetails
                          1
                          0
                          (if (< (- listLen begPos) (1- winLen))
@@ -479,7 +513,7 @@
                                (col #:rebuild
                                       (: masterList newBegPos newEndPos)))
                              allColumns)
-                           isInSelectionMode
+                           selectModeDetails
                            (- newEndPos newBegPos)
                            newBegPos
                            newEndPos))]
@@ -501,7 +535,7 @@
                                (col #:rebuild
                                       (: masterList newBegPos newEndPos)))
                              allColumns)
-                           isInSelectionMode
+                           selectModeDetails
                            (- winLen (- listLen (+ (1- begPos) newPos)))
                            newBegPos
                            newEndPos))]
@@ -525,7 +559,7 @@
                                (col #:rebuild
                                       (: masterList newBegPos newEndPos)))
                              allColumns)
-                           isInSelectionMode
+                           selectModeDetails
                            highlightPos
                            newBegPos
                            newEndPos))]
@@ -555,7 +589,7 @@
                                                 inc? (playWindow #:get-height)))
                           allColumns))
                     allColumns)
-                  isInSelectionMode
+                  selectModeDetails
                   highlightPos
                   begPos
                   (if inc? (1+ endPos) endPos)))]
@@ -590,8 +624,8 @@
                     (: masterList newBegPos newEndPos)
                     allColumns
                     (pw #:get-height)
-                    isInSelectionMode)
-                  isInSelectionMode
+                    selectModeDetails)
+                  selectModeDetails
                   (if (> (- listLen begPos) linesHeight)
                       (- (1+ currSongIndx) newBegPos)
                     highlightPos)
@@ -807,7 +841,7 @@
     mpd
     '()
     (build-columns stdscr captions)
-    (cons #f #f)
+    (alist 'status #f 'index #f 'sortedIndex #f)
     0
     0
     0))
