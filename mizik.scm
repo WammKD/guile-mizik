@@ -117,15 +117,15 @@
                   stdscr
                   (new-mpd-client)
                   (cons "Track"  (lambda (track)
-                                   (if-let ([index (string-index track #\/)])
-                                       (substring track 0 index)
-                                     track)))
+                                   (let ([strT (number->string track)])
+                                     (if-let ([index (string-index strT #\/)])
+                                         (substring strT 0 index)
+                                       strT))))
                   (cons "Title"  (lambda (title)   title))
                   (cons "Artist" (lambda (artist) artist))
                   (cons "Album"  (lambda (album)   album))
                   (cons "Time"   (lambda (time)
-                                   (let* ([r (inexact->exact
-                                               (round (string->number time)))]
+                                   (let* ([r (inexact->exact     (round time))]
                                           [m (number->string (quotient  r 60))]
                                           [s (number->string (remainder r 60))])
                                      (string-append
@@ -140,12 +140,7 @@
         (begin (mpd-disconnect client) w)
       (loop
         (w #:add-new-line
-           (map
-             (lambda (x)
-               (if (number? (cdr x))
-                   (cons (car x) (number->string (cdr x)))
-                 x))
-             (car s))
+           (car s)
            #f)
         (cdr s)))))
 

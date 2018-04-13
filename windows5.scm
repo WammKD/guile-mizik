@@ -282,7 +282,7 @@
               (when (not (assq-ref selectModeDetails 'status))
                 (endwin)
                 (error (string-append
-                         "In procedure columned-window#:move-select: can't "
+                         "In procedure columned-window#:leave-select: can't "
                          "exit Selection Mode while not in Selection Mode.")))
 
               ((list-ref allColumns (assq-ref selectModeDetails 'index))
