@@ -298,6 +298,91 @@
                                                    'sortedIndex))
                 highlightPos begPos                                  endPos)]
         [(#:sort-select)
+              (when (not (assq-ref selectModeDetails 'status))
+                (endwin)
+                (error (string-append
+                         "In procedure columned-window#:sort-select: can't "
+                         "sort a column while not in Selection Mode.")))
+
+              (let* ([colIndex             (assq-ref selectModeDetails 'index)]
+                     [colSymbol     ((list-ref allColumns colIndex) #:get-tag)]
+                     [sortingFunct (if (number? (assq-ref
+                                                  (car masterList)
+                                                  colSymbol))      < string<?)]
+                     [newMasterLst (stable-sort
+                                     masterList
+                                     (lambda (song1 song2)
+                                       (sortingFunct
+                                         (assq-ref song1 colSymbol)
+                                         (assq-ref song2 colSymbol))))]
+                     [newSelecDets (alist 'status      #t
+                                          'index       colIndex
+                                          'sortedIndex colIndex)]
+                     [lengthOfNML  (length newMasterLst)])
+                (mpd-connect mpdClient)
+                (for-each
+                  (lambda (song indexToUse)
+                    (mpdPlaylistCurrent::move-id!
+                      mpdClient (assq-ref song 'Id) indexToUse))
+                  newMasterLst
+                  (iota lengthOfNML))
+                (mpd-disconnect mpdClient)
+
+                (let* ([highlightIndex    (1- (+ begPos highlightPos))]
+                       [newHighlightIndex
+                             (if (= highlightPos 0)
+                                 #f
+                               (let ([highlightedSong (list-ref
+                                                        masterList
+                                                        highlightIndex)])
+                                 (list-index
+                                   (lambda (song) (equal? song highlightedSong))
+                                   newMasterLst)))]
+                       [shouldAdjust      (and
+                                            newHighlightIndex
+                                            (not (between?
+                                                   (1- begPos)
+                                                   newHighlightIndex
+                                                   endPos)))]
+                       [heightToPW        (1- (calculate-height))]
+                       [tempNewBegPos     (if (not shouldAdjust)
+                                              begPos
+                                            (pos-or-to-zero
+                                              (-
+                                                newHighlightIndex
+                                                (1- highlightPos))))]
+                       [newBegPos         (if (and
+                                                (>= lengthOfNML heightToPW)
+                                                (>
+                                                  (+ tempNewBegPos heightToPW)
+                                                  (1- lengthOfNML)))
+                                              (- lengthOfNML heightToPW)
+                                            tempNewBegPos)]
+                       [newHighlightPos   (if (not newHighlightIndex)
+                                              0
+                                            (1+
+                                              (- newHighlightIndex newBegPos)))]
+                       [newEndPos         (if (not shouldAdjust)
+                                              endPos
+                                            (if (> heightToPW (-
+                                                                lengthOfNML
+                                                                newBegPos))
+                                                lengthOfNML
+                                              (+ newBegPos heightToPW)))])
+                  (clear-lines window heightToPW 1 0)
+
+                  (columned-window
+                    window          playWindow                  mpdClient
+                    newMasterLst    (rebuild-columns
+                                      window
+                                      (:
+                                        newMasterLst
+                                        newBegPos
+                                        newEndPos)
+                                      allColumns
+                                      (playWindow #:get-height)
+                                      newSelecDets)             newSelecDets
+                    newHighlightPos newBegPos                   newEndPos)))]
         [(#:move-select)
               (when (not (assq-ref selectModeDetails 'status))
                 (endwin)

@@ -21,6 +21,7 @@
               [(#\=)                 (columnedWin #:change-select  1)]
               [(#\-) #| KEY_ENTER |# (columnedWin #:change-select -1)]
               [(13 10 343 #\newline) (columnedWin #:leave-select)]
+              [(#\s)                 (columnedWin #:sort-select)]
               [else                  columnedWin])
           (case char
             [(338)#| KEY_NPAGE |# (columnedWin #:move-cursor  10)]
