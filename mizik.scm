@@ -319,14 +319,14 @@
 
 
 
-;; ;; (display (get-mpd-response
-;; ;;            (mpdDatabase::ls-info
-;; ;;              client
-;; ;;              (cdadar (get-mpd-response (mpdDatabase::list-all client))))))
-;; ;; (display db)
-;; (newline)
-;; (newline)
-;; (mpd-connect    client)
-;; ;; (display (get-mpd-response (mpdDatabase::list-all client)))
-;; (display (get-mpd-response (mpdPlaylistCurrent::playlist-info client)))
-;; (mpd-disconnect client)
+;; (display (get-mpd-response
+;;            (mpdDatabase::ls-info
+;;              client
+;;              (cdadar (get-mpd-response (mpdDatabase::list-all client))))))
+;; (display db)
+(newline)
+(newline)
+(mpd-connect    client)
+;; (display (get-mpd-response (mpdDatabase::list-all client)))
+(display (get-mpd-response (mpdPlaylistCurrent::playlist-info client)))
+(mpd-disconnect client)

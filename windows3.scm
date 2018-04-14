@@ -367,57 +367,73 @@
                      (let loop ([result          '()]
                                 [current  allColumns]
                                 [offset            0]
-                                [count             0]
-                                [decrease        #t])
-                       (if (null? current)
-                           (reverse result)
-                         (let* ([pwHeight  (playWindow #:get-height)]
-                                [currCol               (car current)]
-                                [currWidth     (currCol #:get-width)]
-                                [hghlght             (= count index)]
-                                [newCol    (cond
-                                            [(< count index)
-                                                  currCol]
-                                            [hghlght
-                                                  (if (and
-                                                        (positive? incPerc)
-                                                        (<=
-                                                          (-
-                                                            winWidth
-                                                            (+
-                                                              offset
-                                                              currWidth))
-                                                          (/
-                                                            (-
-                                                              winWidth
-                                                              offset)
-                                                            2)))
-                                                      currCol
-                                                    (currCol
-                                                      #:rebuild-manually
+                                [count             0])
+                       (if (not (= count index))
+                           (let ([col (car current)])
+                             (loop
+                               (cons col result)
+                               (cdr current)
+                               (+ (col #:get-width) offset)
+                               (1+ count)))
+                         (if (or
+                               (and
+                                 (positive? incPerc)
+                                 (<=
+                                   (- winWidth (+ offset ((car current) #:get-width)))
+                                   (* colsToRight 3)))
+                               (and
+                                 (negative? incPerc)
+                                 (<= ((car current) #:get-width) 3)))
+                             (append (reverse result) current)
+                           (let* ([pwHeight         (playWindow #:get-height)]
+                                  [currCol                      (car current)]
+                                  [currWidth            (currCol #:get-width)]
+                                  [newCol    (currCol #:rebuild-manually
                                                         incPerc
                                                         offset
                                                         (-
                                                           (getmaxy window)
-                                                          pwHeight)))]
-                                            [else (currCol
-                                                    #:rebuild-manually
-                                                      (if decrease decPerc 0)
-                                                      offset
-                                                      #f)])])
-                           (when hghlght
-                             (newCol #:highlight-column pwHeight #t))
+                                                          pwHeight))]
+                                  [newOffset  (+ (newCol #:get-width) offset)]
+                                  [currResult            (cons newCol result)])
+                             (newCol #:highlight-column pwHeight #t)
 
-                           (loop
-                             (cons newCol result)
-                             (cdr current)
-                             (+ (newCol #:get-width) offset)
-                             (1+ count)
-                             (if (and
-                                   hghlght
-                                   (= currWidth (newCol #:get-width)))
-                                 #f
-                               decrease))))))))
+                             (let loop2 ([final            currResult]
+                                         [cyclingOffset     newOffset]
+                                         [decAmount           incPerc]
+                                         [rest          (cdr current)])
+                               (cond
+                                [(and (zero? decAmount) (null? rest))
+                                      (reverse final)]
+                                [(zero? decAmount)
+                                      (let ([col (car rest)])
+                                        (loop2
+                                          (cons col final)
+                                          (+ (col #:get-width) cyclingOffset)
+                                          decAmount
+                                          (cdr rest)))]
+                                [(null? rest)
+                                      (loop2
+                                        currResult
+                                        newOffset
+                                        decAmount
+                                        (reverse
+                                          (: final 0 (-
+                                                       (length final)
+                                                       (length currResult)))))]
+                                [else (let* ([col                 (car rest)]
+                                             [dec    (> (col #:get-width) 3)]
+                                             [newCol (col #:rebuild-manually
+                                                            (if dec decPerc 0)
+                                                            cyclingOffset
+                                                            #f)])
+                                        (loop2
+                                          (cons newCol final)
+                                          (+ (newCol #:get-width) cyclingOffset)
+                                          (if dec
+                                              (+ decAmount decPerc)
+                                            decAmount)
+                                          (cdr rest)))])))))))))
                isInSelectionMode
                highlightPos
                begPos
