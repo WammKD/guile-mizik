@@ -73,9 +73,9 @@
 
   (define* (column window format-line
                    header columnLines
-                   offset percentage  #:optional [formattedLines #f]
-                                                 [setHeader      #f]
-                                                 [setLines       #f])
+                   offset percentage  isSorted #:optional [formattedLines #f]
+                                                          [setHeader      #f]
+                                                          [setLines       #f])
     (define body        (if formattedLines
                             formattedLines
                           (map
