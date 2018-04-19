@@ -9,6 +9,15 @@
   (syntax-rules ()
     [(_ ret else) (if ret ret else)]))
 
+(define-syntax case-pred
+  (syntax-rules (else)
+    [(_ key [pred result] ... [else lastResort]) (cond
+                                                  [(pred key)     result]
+                                                  ...
+                                                  [else       lastResort])]
+    [(_ key [pred result] ...)                   (cond
+                                                  [(pred key) result] ...)]))
+
 (define (2+ num)
   (+ num 2))
 (define (2- num)
