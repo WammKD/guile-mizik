@@ -105,23 +105,40 @@
                    "pushes lines length to larger value "
                    "(" (number->string lengthOfNewLines) ") than window height "
                    "(" (number->string      linesLength) ")")))))
-    (define (form-line-of-approp-len l)
-      (let* ([line                (if l l "")]
-             [ELLIPSIS                    "…"]
-             [lineLength (string-length line)])
+    (define (form-line-of-approp-len l isHeader)
+      (let* ([line                                 (if l l "")]
+             [ELLIPSIS                                     "…"]
+             [lineLength                  (string-length line)]
+             [headerEnd  (if isHeader (case-pred isSorted
+                                        [negative? " "]
+                                        [zero?     "▼"]
+                                        [positive? "▲"])  " ")])
         (cond
-         [(<= columnWidth 0)                            ""]
-         [(=  columnWidth 1)                      ELLIPSIS]
-         [(=  columnWidth 2)  (string-append ELLIPSIS " ")]
+         [(<= columnWidth 0)                                  ""]
+         [(=  columnWidth 1)                            ELLIPSIS]
+         [(=  columnWidth 2)  (string-append ELLIPSIS headerEnd)]
          [(>
             lineLength
             (1- columnWidth)) (string-append
                                 (substring line 0 (2- columnWidth))
                                 ELLIPSIS
-                                " ")]
-         [else                                        line])))
+                                headerEnd)]
+         [(=
+            lineLength
+            (1- columnWidth)) (string-append line headerEnd)]
+         [(=
+            lineLength
+            columnWidth)      (string-append line " " headerEnd)]
+         [else                (string-append
+                                line
+                                (make-string (-
+                                               columnWidth
+                                               (string-length line)
+                                               2)                   #\space)
+                                headerEnd
+                                " ")])))
     (define (format-and-add line index)
-      (let ([newLine (form-line-of-approp-len line)])
+      (let ([newLine (form-line-of-approp-len line (= index 0))])
         (addstr window newLine #:y index #:x offset)
 
         newLine))
