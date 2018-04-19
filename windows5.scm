@@ -31,7 +31,8 @@
                                (car header)
                                '()
                                offset
-                               (cons #f (- windowWidth offset))) result))
+                               (cons #f (- windowWidth offset))
+                               -1)                               result))
             (let ([col (let ([headerTitle (car header)])
                          (column
                            window
@@ -40,13 +41,14 @@
                            '()
                            offset
                            (cons #t (/ (string-length
-                                         headerTitle) totalLenOfEachHeader))))])
+                                         headerTitle) totalLenOfEachHeader))
+                           -1))])
               (loop
                 (cons col result)
                 restOfRemainingHeaders
                 (+ (col #:get-width) offset))))))))
-  (define (rebuild-columns window         lines
-                           currentColumns playWindowHeight selectionStatus)
+  (define (rebuild-columns window           lines           currentColumns
+                           playWindowHeight selectionStatus sortedIndex)
     (define (determine-highlight columnInQuestion columnIndex)
       (when (and
               (assq-ref selectionStatus 'status)
