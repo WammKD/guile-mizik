@@ -240,7 +240,8 @@
                    newOffset
                    (if (car percentage)
                        (cons #t newPercentage)
-                     (cons #f (- (cols) newOffset)))))]))))
+                     (cons #f (- (cols) newOffset)))
+                   isSorted))]))))
 
   (define (columned-window window       playWindow mpdClient
                            masterList   allColumns selectModeDetails
@@ -341,10 +342,14 @@
                          "sort a column while not in Selection Mode.")))
 
               (let* ([colIndex             (assq-ref selectModeDetails 'index)]
-                     [colSymbol     ((list-ref allColumns colIndex) #:get-tag)]
-                     [sortingFunct (if (number? (assq-ref
-                                                  (car masterList)
-                                                  colSymbol))      < string<?)]
+                     [currentCol                (list-ref allColumns colIndex)]
+                     [colSymbol                         (currentCol #:get-tag)]
+                     [sortingFunct (let ([status (currentCol #:get-sort-status)])
+                                     (if (number? (assq-ref
+                                                    (car masterList)
+                                                    colSymbol))
+                                         (if (zero? status) > <)
+                                       (if (zero? status) string>? string<?)))]
                      [newMasterLst (stable-sort
                                      masterList
                                      (lambda (song1 song2)
@@ -417,7 +422,8 @@
                                         newEndPos)
                                       allColumns
                                       (playWindow #:get-height)
-                                      newSelecDets)             newSelecDets
+                                      newSelecDets
+                                      colIndex)                 newSelecDets
                     newHighlightPos newBegPos                   newEndPos)))]
         [(#:move-select)
               (when (not (assq-ref selectModeDetails 'status))
@@ -745,7 +751,8 @@
                     (: masterList newBegPos newEndPos)
                     allColumns
                     (pw #:get-height)
-                    selectModeDetails)
+                    selectModeDetails
+                    #f)
                   selectModeDetails
                   (if (> (- listLen begPos) linesHeight)
                       (- (1+ currSongIndx) newBegPos)
