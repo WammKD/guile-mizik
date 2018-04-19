@@ -58,16 +58,21 @@
     (let loop ([result '()] [remainingColumns currentColumns]
                [offset   0] [index                         0])
       (let ([firstColumn            (car remainingColumns)]
-            [restOfRemainingColumns (cdr remainingColumns)])
+            [restOfRemainingColumns (cdr remainingColumns)]
+            [isSorted               (if (not sortedIndex)
+                                        -1
+                                      (if (= index sortedIndex) 1 0))])
         (if (null? restOfRemainingColumns)
-            (let ([col (firstColumn #:rebuild-with-size
-                                      lines             offset
-                                      (- (cols) offset) playWindowHeight)])
+            (let ([col (firstColumn
+                         #:rebuild-with-size
+                           lines             offset
+                           (- (cols) offset) playWindowHeight isSorted)])
               (determine-highlight col index)
 
               (reverse (cons col result)))
           (let ([col (firstColumn
-                       #:rebuild-with-size lines offset #f playWindowHeight)])
+                       #:rebuild-with-size lines offset
+                                           #f    playWindowHeight isSorted)])
             (determine-highlight col index)
 
             (loop (cons col result)            restOfRemainingColumns
