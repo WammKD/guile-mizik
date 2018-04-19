@@ -160,58 +160,70 @@
           [(#:get-lines)                           columnLines]
           [(#:get-formatted)                              body]
           [(#:get-formed-lines)                       newLines]
+          [(#:get-sort-status)                        isSorted]
           [(#:form-line-of-approp-len) form-line-of-approp-len]
           [(#:get-percentage)
                      (if (car percentage) (cdr percentage) #f)]
           [(#:highlight-column)
-               (for-each
-                 (lambda (index)
-                   (chgat window columnWidth (if (cadr xs)
-                                                 A_REVERSE
-                                               A_NORMAL)   0
-                          #:x    offset      #:y           index))
-                 (iota (- (lines) (car xs))))]
+                (for-each
+                  (lambda (index)
+                    (chgat window columnWidth (if (cadr xs)
+                                                  A_REVERSE
+                                                A_NORMAL)   0
+                           #:x    offset      #:y           index))
+                  (iota (- (lines) (car xs))))]
           [(#:add-new-line)
-               (let* ([line                                          (car xs)]
-                      [index   (if (> (cadr xs) linesLen) linesLen (cadr xs))]
-                      [i+1                                         (1+ index)]
-                      [newLen          (if (caddr xs) linesLen (1- linesLen))]
-                      [refLine       (assoc-ref line (string->symbol header))])
-                 (check-height newLen (cadddr xs))
+                (let* ([line                                          (car xs)]
+                       [index   (if (> (cadr xs) linesLen) linesLen (cadr xs))]
+                       [i+1                                         (1+ index)]
+                       [newLen          (if (caddr xs) linesLen (1- linesLen))]
+                       [refLine       (assoc-ref line (string->symbol header))])
+                  (check-height newLen (cadddr xs))
 
-                 (column
-                   window
-                   format-line
-                   header
-                   (append
-                     (: columnLines 0     index)
-                     (list line)
-                     (: columnLines index newLen))
-                   offset
-                   percentage
-                   (append
-                     (: body 0     index)
-                     (list refLine)
-                     (: body index newLen))
-                   newHeader
-                   (append
-                     (: newLines 0 index)
-                     (list (format-and-add (format-line refLine) (1+ index)))
-                     (let ([sub (: body index newLen)])
-                       (map
-                         format-and-add
-                         sub
-                         (iota (length sub) (2+ index)))))))]
+                  (column
+                    window
+                    format-line
+                    header
+                    (append
+                      (: columnLines 0     index)
+                      (list line)
+                      (: columnLines index newLen))
+                    offset
+                    percentage
+                    isSorted
+                    (append
+                      (: body 0     index)
+                      (list refLine)
+                      (: body index newLen))
+                    newHeader
+                    (append
+                      (: newLines 0 index)
+                      (list (format-and-add (format-line refLine) (1+ index)))
+                      (let ([sub (: body index newLen)])
+                        (map
+                          format-and-add
+                          sub
+                          (iota (length sub) (2+ index)))))))]
           [(#:rebuild)
-                (column window format-line header (car xs) offset percentage)]
+                (column window   format-line header
+                        (car xs) offset      percentage isSorted)]
           [(#:rebuild-with-size)
                 (check-height (length (car xs)) (cadddr xs))
 
-                (column window   format-line header
-                        (car xs) (cadr xs)   (let ([perc (caddr xs)])
-                                               (if perc
-                                                   (cons #f perc)
-                                                 percentage)))]
+                (let ([terlean (caddddr xs)])
+                  (column
+                    window    format-line
+                    header    (car xs)
+                    (cadr xs) (let ([perc (caddr xs)])
+                                (if perc
+                                    (cons #f perc)
+                                  percentage))         (case-pred terlean
+                                                         [negative? isSorted]
+                                                         [zero?           -1]
+                                                         [positive? (case-pred isSorted
+                                                                      [negative? 0]
+                                                                      [zero?     1]
+                                                                      [positive? 0])])))]
           [(#:rebuild-manually)
                (let ([newPercentage (car   xs)]
                      [newOffset     (cadr  xs)]
