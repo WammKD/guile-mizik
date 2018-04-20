@@ -24,19 +24,22 @@
               [(#\s)                 (columnedWin #:sort-select)]
               [else                  columnedWin])
           (case char
-            [(338)#| KEY_NPAGE |# (columnedWin #:move-cursor  10)]
-            [(#\n)                (columnedWin #:move-cursor   3)]
-            [(258)#| KEY_DOWN  |# (columnedWin #:move-cursor   1)]
-            [(339)#| KEY_PPAGE |# (columnedWin #:move-cursor -10)]
-            [(#\p)                (columnedWin #:move-cursor  -3)]
-            [(259)#| KEY_UP    |# (columnedWin #:move-cursor  -1)]
+            [(338) #| KEY_NPAGE |# (columnedWin #:move-cursor  10)]
+            [(#\n)                 (columnedWin #:move-cursor   3)]
+            [(258) #| KEY_DOWN  |# (columnedWin #:move-cursor   1)]
+            [(339) #| KEY_PPAGE |# (columnedWin #:move-cursor -10)]
+            [(#\p)                 (columnedWin #:move-cursor  -3)]
+            [(259) #| KEY_UP    |# (columnedWin #:move-cursor  -1)]
             [(13
               10
               343  ; KEY_ENTER
-              #\newline) (columnedWin #:play)         columnedWin]
-            [(#\space)   (columnedWin #:toggle-play)  columnedWin]
-            [(#\v)       (columnedWin #:set-vol 5 #t) columnedWin]
-            [(#\V)       (columnedWin #:set-vol 5 #f) columnedWin]
+              #\newline) (columnedWin #:play)          columnedWin]
+            [(#\space)   (columnedWin #:toggle-play)   columnedWin]
+            [(#\v)       (columnedWin #:set-vol 5 #t)  columnedWin]
+            [(#\V)       (columnedWin #:set-vol 5 #f)  columnedWin]
+            [(#\r)       (columnedWin #:toggle-repeat) columnedWin]
+            [(#\R)       (columnedWin #:toggle-random) columnedWin]
+            [(#\s)                    (columnedWin #:enter-select)]
             [(#\esc)     (nodelay! (columnedWin #:get-window) #t)
                          (let* ([w (columnedWin #:get-window)]
                                 [c                  (getch w)])
@@ -84,7 +87,6 @@
                                  columnedWin)
                              ;; Escape key, only
                              columnedWin))]
-            [(#\s)                   (columnedWin #:enter-select)]
             [else                                     columnedWin]))))))
 
 ;; Initialize the main screen and settings

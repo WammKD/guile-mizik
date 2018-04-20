@@ -260,62 +260,78 @@
 
     (lambda (method . xs)
       (case method
-        [(#:get-window)                                 window]
-        [(#:get-max-y-x)                     (getmaxyx window)]
-        [(#:get-max-y)                       (getmaxy  window)]
-        [(#:get-max-x)                       (getmaxx  window)]
-        [(#:is-in-mode)   (assq-ref selectModeDetails 'status)]
-        [(#:refresh)                         (refresh  window)]
-        [(#:set-vol)      (mpd-connect mpdClient)
-                          (let ([newVol ((if (cadr xs) + -)
-                                          (assoc-ref
-                                            (get-mpd-response
-                                              (mpdStatus::status mpdClient))
-                                            'volume)
-                                          (car xs))])
-                            (mpdPlaybackOption::set-vol!
-                              mpdClient
-                              (cond
-                               [(> newVol 100)    100]
-                               [(< newVol   0)      0]
-                               [else           newVol])))
-                          (mpd-disconnect mpdClient)]
-        [(#:play)         (when (> highlightPos 0)
-                            (mpd-connect mpdClient)
-                            (mpdPlaybackControl::play
-                              mpdClient
-                              (+ begPos (1- highlightPos)))
-                            (mpd-disconnect mpdClient)
-                            (playWindow #:rebuild-play mpdClient))]
-        [(#:toggle-play)  (mpd-connect mpdClient)
-                          (if (string=? (assoc-ref
-                                          (get-mpd-response
-                                            (mpdStatus::status mpdClient))
-                                          'state) "play")
-                              (mpdPlaybackControl::pause mpdClient #t)
-                            (mpdPlaybackControl::pause mpdClient #f))
-                          (mpd-disconnect mpdClient)
-                          (playWindow #:rebuild-pause mpdClient)]
-        [(#:seek)         (mpd-connect mpdClient)
-                          (mpdPlaybackControl::seek-current mpdClient (car xs))
-                          (mpd-disconnect mpdClient)]
-        [(#:enter-select) (chgat window -1 A_NORMAL 0 #:x 0 #:y highlightPos)
-                          ((car allColumns) #:highlight-column
-                                              (playWindow #:get-height) #t)
-                          (columned-window
-                            window
-                            playWindow
-                            mpdClient
-                            masterList
-                            allColumns
-                            (alist 'status      #t
-                                   'index       0
-                                   'sortedIndex (assq-ref
-                                                  selectModeDetails
-                                                  'sortedIndex))
-                            highlightPos
-                            begPos
-                            endPos)]
+        [(#:get-window)                                  window]
+        [(#:get-max-y-x)                      (getmaxyx window)]
+        [(#:get-max-y)                        (getmaxy  window)]
+        [(#:get-max-x)                        (getmaxx  window)]
+        [(#:is-in-mode)    (assq-ref selectModeDetails 'status)]
+        [(#:refresh)                          (refresh  window)]
+        [(#:toggle-repeat) (mpd-connect mpdClient)
+                           (mpdPlaybackOption::repeat!
+                             mpdClient
+                             (not (assoc-ref
+                                    (get-mpd-response
+                                      (mpdStatus::status mpdClient))
+                                    'repeat)))
+                           (mpd-disconnect mpdClient)]
+        [(#:toggle-random) (mpd-connect mpdClient)
+                           (mpdPlaybackOption::random!
+                             mpdClient
+                             (not (assoc-ref
+                                    (get-mpd-response
+                                      (mpdStatus::status mpdClient))
+                                    'random)))
+                           (mpd-disconnect mpdClient)]
+        [(#:set-vol)       (mpd-connect mpdClient)
+                           (let ([newVol ((if (cadr xs) + -)
+                                           (assoc-ref
+                                             (get-mpd-response
+                                               (mpdStatus::status mpdClient))
+                                             'volume)
+                                           (car xs))])
+                             (mpdPlaybackOption::set-vol!
+                               mpdClient
+                               (cond
+                                [(> newVol 100)    100]
+                                [(< newVol   0)      0]
+                                [else           newVol])))
+                           (mpd-disconnect mpdClient)]
+        [(#:play)          (when (> highlightPos 0)
+                             (mpd-connect mpdClient)
+                             (mpdPlaybackControl::play
+                               mpdClient
+                               (+ begPos (1- highlightPos)))
+                             (mpd-disconnect mpdClient)
+                             (playWindow #:rebuild-play mpdClient))]
+        [(#:toggle-play)   (mpd-connect mpdClient)
+                           (if (string=? (assoc-ref
+                                           (get-mpd-response
+                                             (mpdStatus::status mpdClient))
+                                           'state) "play")
+                               (mpdPlaybackControl::pause mpdClient #t)
+                             (mpdPlaybackControl::pause mpdClient #f))
+                           (mpd-disconnect mpdClient)
+                           (playWindow #:rebuild-pause mpdClient)]
+        [(#:seek)          (mpd-connect mpdClient)
+                           (mpdPlaybackControl::seek-current mpdClient (car xs))
+                           (mpd-disconnect mpdClient)]
+        [(#:enter-select)  (chgat window -1 A_NORMAL 0 #:x 0 #:y highlightPos)
+                           ((car allColumns) #:highlight-column
+                                               (playWindow #:get-height) #t)
+                           (columned-window
+                             window
+                             playWindow
+                             mpdClient
+                             masterList
+                             allColumns
+                             (alist 'status      #t
+                                    'index       0
+                                    'sortedIndex (assq-ref
+                                                   selectModeDetails
+                                                   'sortedIndex))
+                             highlightPos
+                             begPos
+                             endPos)]
         [(#:leave-select)
               (when (not (assq-ref selectModeDetails 'status))
                 (endwin)
@@ -835,7 +851,8 @@
               (append displayedSong (list (cons
                                             (make-string (-
                                                            comparison
-                                                           songLength) #\space)
+                                                           songLength
+                                                           -1)         #\space)
                                             normal)))
             (let* ([lastElem   (list-ref displayedSong (1- (length
                                                              displayedSong)))]
@@ -887,15 +904,43 @@
                                                        elapsed
                                                        time
                                                        #f)) normal))]
-                            [dispSong  (fit-displayed-song
-                                         (list
-                                           (cons " "                      normal)
-                                           (cons (assoc-ref song 'Title)  bold)
-                                           (cons " from "                 normal)
-                                           (cons (assoc-ref song 'Album)  bold)
-                                           (cons " by "                   normal)
-                                           (cons (assoc-ref song 'Artist) bold))
-                                         (- winWidth 4))])
+                            [dispSong
+                                  (append
+                                    (fit-displayed-song
+                                      (list
+                                        (cons " "                      normal)
+                                        (cons (assoc-ref song 'Title)  bold)
+                                        (cons " from "                 normal)
+                                        (cons (assoc-ref song 'Album)  bold)
+                                        (cons " by "                   normal)
+                                        (cons (assoc-ref song 'Artist) bold))
+                                      (- winWidth 5))
+                                    (list
+                                      (cons
+                                        (string-append
+                                          " "
+                                          (let ([answer
+                                                 (begin
+                                                   (mpd-connect mpdClient)
+                                                   (if (assoc-ref
+                                                         (get-mpd-response
+                                                           (mpdStatus::status
+                                                             mpdClient))
+                                                         'repeat) "↺" " "))])
+                                            (mpd-disconnect mpdClient)
+                                            answer)
+                                          (let ([answer
+                                                 (begin
+                                                   (mpd-connect mpdClient)
+                                                   (if (assoc-ref
+                                                         (get-mpd-response
+                                                           (mpdStatus::status
+                                                             mpdClient))
+                                                         'random) "⤭" " "))])
+                                            (mpd-disconnect mpdClient)
+                                            answer)
+                                          " ")
+                                        normal)))])
                        (write-line win startingIndex      dispSong  #t)
                        (write-line win (1+ startingIndex) newStatus #t)
 
