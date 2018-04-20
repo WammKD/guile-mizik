@@ -37,7 +37,7 @@
             [(#\space)   (columnedWin #:toggle-play)   columnedWin]
             [(#\v)       (columnedWin #:set-vol 5 #t)  columnedWin]
             [(#\V)       (columnedWin #:set-vol 5 #f)  columnedWin]
-            [(#\r)       (columnedWin #:toggle-repeat) columnedWin]
+            [(#\L)       (columnedWin #:toggle-repeat) columnedWin]
             [(#\R)       (columnedWin #:toggle-random) columnedWin]
             [(#\s)                    (columnedWin #:enter-select)]
             [(#\esc)     (nodelay! (columnedWin #:get-window) #t)

@@ -815,6 +815,61 @@
           " / "
           tString)))
 
+    (define (fit-displayed-song displayedSong comparison client)
+      (define (calculate-pairs-length pairs)
+        (fold (lambda (pair result)
+                (+ result (string-length (car pair)))) 0 pairs))
+
+      (define newComp      (- comparison 5))
+      (define songMinusOne (: displayedSong 0 -1))
+      (define songLength   (calculate-pairs-length displayedSong))
+
+      (if (and
+            (not (null? songMinusOne))
+            (> (calculate-pairs-length songMinusOne) newComp))
+          (fit-displayed-song songMinusOne comparison client)
+        (let ([end (cons
+                     (string-append
+                       " "
+                       (let ([answer (begin
+                                       (mpd-connect client)
+                                       (if (assoc-ref
+                                             (get-mpd-response
+                                               (mpdStatus::status client))
+                                             'repeat) "↺" " "))])
+                         (mpd-disconnect client)
+                         answer)
+                       (let ([answer (begin
+                                       (mpd-connect client)
+                                       (if (assoc-ref
+                                             (get-mpd-response
+                                               (mpdStatus::status client))
+                                             'random) "⤭" " "))])
+                         (mpd-disconnect client)
+                         answer)
+                       " ")
+                     normal)])
+          (if (< songLength newComp)
+              (append displayedSong (list (cons
+                                            (make-string (-
+                                                           newComp
+                                                           songLength
+                                                           -1)         #\space)
+                                            normal) end))
+            (let* ([lastElem   (list-ref displayedSong (1- (length
+                                                             displayedSong)))]
+                   [lastString                                 (car lastElem)])
+              (append
+                songMinusOne
+                (list
+                  (cons
+                    (substring lastString 0 (-
+                                              (string-length lastString)
+                                              (- songLength newComp)))
+                    (cdr lastElem))
+                  (cons (if (= songLength newComp) "" ELLIPSIS) normal)
+                  end)))))))
+
     (define (write-line wind lineIndex linesToWrite rev?)
       (define funct (if rev? inverse-on inverse-off))
 
@@ -835,37 +890,6 @@
 
     (define (set-display! win mpdClient statusBox displayedSongBox)
       (define winWidth (cols))
-      (define (fit-displayed-song displayedSong comparison)
-        (define (calculate-pairs-length pairs)
-          (fold (lambda (pair result)
-                  (+ result (string-length (car pair)))) 0 pairs))
-
-        (define songMinusOne (: displayedSong 0 -1))
-        (define songLength   (calculate-pairs-length displayedSong))
-
-        (if (and
-              (not (null? songMinusOne))
-              (> (calculate-pairs-length songMinusOne) comparison))
-            (fit-displayed-song songMinusOne comparison)
-          (if (< songLength comparison)
-              (append displayedSong (list (cons
-                                            (make-string (-
-                                                           comparison
-                                                           songLength
-                                                           -1)         #\space)
-                                            normal)))
-            (let* ([lastElem   (list-ref displayedSong (1- (length
-                                                             displayedSong)))]
-                   [lastString                                 (car lastElem)])
-              (append
-                songMinusOne
-                (list
-                  (cons
-                    (substring lastString 0 (-
-                                              (string-length lastString)
-                                              (- songLength comparison)))
-                    (cdr lastElem))
-                  (cons (if (= songLength comparison) "" ELLIPSIS) normal)))))))
 
       (mpd-connect mpdClient)
       (let ([status        (get-mpd-response (mpdStatus::status mpdClient))]
@@ -904,43 +928,17 @@
                                                        elapsed
                                                        time
                                                        #f)) normal))]
-                            [dispSong
-                                  (append
-                                    (fit-displayed-song
-                                      (list
-                                        (cons " "                      normal)
-                                        (cons (assoc-ref song 'Title)  bold)
-                                        (cons " from "                 normal)
-                                        (cons (assoc-ref song 'Album)  bold)
-                                        (cons " by "                   normal)
-                                        (cons (assoc-ref song 'Artist) bold))
-                                      (- winWidth 5))
-                                    (list
-                                      (cons
-                                        (string-append
-                                          " "
-                                          (let ([answer
-                                                 (begin
-                                                   (mpd-connect mpdClient)
-                                                   (if (assoc-ref
-                                                         (get-mpd-response
-                                                           (mpdStatus::status
-                                                             mpdClient))
-                                                         'repeat) "↺" " "))])
-                                            (mpd-disconnect mpdClient)
-                                            answer)
-                                          (let ([answer
-                                                 (begin
-                                                   (mpd-connect mpdClient)
-                                                   (if (assoc-ref
-                                                         (get-mpd-response
-                                                           (mpdStatus::status
-                                                             mpdClient))
-                                                         'random) "⤭" " "))])
-                                            (mpd-disconnect mpdClient)
-                                            answer)
-                                          " ")
-                                        normal)))])
+                            [origDisp  (list
+                                         (cons " "                      normal)
+                                         (cons (assoc-ref song 'Title)  bold)
+                                         (cons " from "                 normal)
+                                         (cons (assoc-ref song 'Album)  bold)
+                                         (cons " by "                   normal)
+                                         (cons (assoc-ref song 'Artist) bold))]
+                            [dispSong  (fit-displayed-song
+                                         origDisp
+                                         winWidth
+                                         mpdClient)])
                        (write-line win startingIndex      dispSong  #t)
                        (write-line win (1+ startingIndex) newStatus #t)
 
@@ -948,7 +946,7 @@
                                                            (cols)
                                                            newStatus
                                                            (cons elapsed time)))
-                       (atomic-box-set! displayedSongBox dispSong)))]
+                       (atomic-box-set! displayedSongBox origDisp)))]
           [(pause) (let ([prevInfo (atomic-box-ref statusBox)])
                      (write-line win startingIndex (atomic-box-ref
                                                      displayedSongBox) #t)
@@ -1023,6 +1021,7 @@
                (play-window window thread sBox dBox)]
           [(#:rebuild-size)
                (let* ([initIndex (- (lines) setHeight)]
+                      [winWidth                 (cols)]
                       [prevInfo  (atomic-box-ref sBox)]
                       [prevTimes      (caddr prevInfo)]
                       [newStatus (list
@@ -1034,9 +1033,12 @@
                                          (cdr prevTimes)
                                          (prev-status-state=? prevInfo " ▪ ")))
                                      (cdaadr prevInfo)))])
-                 (write-line window initIndex      (atomic-box-ref dBox) #t)
-                 (write-line window (1+ initIndex) newStatus             #t)
-                 (atomic-box-set! sBox (list (cols) newStatus prevTimes)))
+                 (write-line window initIndex      (fit-displayed-song
+                                                     (atomic-box-ref dBox)
+                                                     winWidth
+                                                     mpd)                   #t)
+                 (write-line window (1+ initIndex) newStatus                #t)
+                 (atomic-box-set! sBox (list winWidth newStatus prevTimes)))
                (play-window window thread sBox dBox)]))))
 
 
