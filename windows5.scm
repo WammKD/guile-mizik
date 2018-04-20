@@ -3,6 +3,8 @@
 (use-modules (srfi srfi-1) (ice-9 threads) (ice-9 atomic))
 (include     "./util.scm")
 
+(define ELLIPSIS "…")
+
 (define (windows::build-columned-window stdscr mpd . captions)
   (define (clear-lines win numberOfLines startingVertIndex startingHorizIndex)
     (for-each
@@ -107,7 +109,6 @@
                    "(" (number->string      linesLength) ")")))))
     (define (form-line-of-approp-len l isHeader)
       (let* ([line                                 (if l l "")]
-             [ELLIPSIS                                     "…"]
              [lineLength                  (string-length line)]
              [headerEnd  (if isHeader (case-pred isSorted
                                         [negative? " "]
