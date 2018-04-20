@@ -818,14 +818,45 @@
           #:x x)))
 
     (define (set-display! win mpdClient statusBox displayedSongBox)
+      (define winWidth (cols))
+      (define (fit-displayed-song displayedSong comparison)
+        (define (calculate-pairs-length pairs)
+          (fold (lambda (pair result)
+                  (+ result (string-length (car pair)))) 0 pairs))
+
+        (define songMinusOne (: displayedSong 0 -1))
+        (define songLength   (calculate-pairs-length displayedSong))
+
+        (if (and
+              (not (null? songMinusOne))
+              (> (calculate-pairs-length songMinusOne) comparison))
+            (fit-displayed-song songMinusOne comparison)
+          (if (< songLength comparison)
+              (append displayedSong (list (cons
+                                            (make-string (-
+                                                           comparison
+                                                           songLength) #\space)
+                                            normal)))
+            (let* ([lastElem   (list-ref displayedSong (1- (length
+                                                             displayedSong)))]
+                   [lastString                                 (car lastElem)])
+              (append
+                songMinusOne
+                (list
+                  (cons
+                    (substring lastString 0 (-
+                                              (string-length lastString)
+                                              (- songLength comparison)))
+                    (cdr lastElem))
+                  (cons (if (= songLength comparison) "" ELLIPSIS) normal)))))))
+
       (mpd-connect mpdClient)
       (let ([status        (get-mpd-response (mpdStatus::status mpdClient))]
             [startingIndex                            (- (lines) setHeight)])
         (mpd-disconnect mpdClient)
 
         (case (string->symbol (assoc-ref status 'state))
-          [(stop)  (let ([winWidth                     (cols)]
-                         [prevInfo (atomic-box-ref statusBox)]
+          [(stop)  (let ([prevInfo (atomic-box-ref statusBox)]
                          [dispSong    (list (cons "" normal))])
                      (write-line win startingIndex dispSong #t)
                      (when (or
@@ -856,13 +887,15 @@
                                                        elapsed
                                                        time
                                                        #f)) normal))]
-                            [dispSong (list
-                                        (cons " "                      normal)
-                                        (cons (assoc-ref song 'Title)  bold)
-                                        (cons " from "                 normal)
-                                        (cons (assoc-ref song 'Album)  bold)
-                                        (cons " by "                   normal)
-                                        (cons (assoc-ref song 'Artist) bold))])
+                            [dispSong  (fit-displayed-song
+                                         (list
+                                           (cons " "                      normal)
+                                           (cons (assoc-ref song 'Title)  bold)
+                                           (cons " from "                 normal)
+                                           (cons (assoc-ref song 'Album)  bold)
+                                           (cons " by "                   normal)
+                                           (cons (assoc-ref song 'Artist) bold))
+                                         (- winWidth 4))])
                        (write-line win startingIndex      dispSong  #t)
                        (write-line win (1+ startingIndex) newStatus #t)
 
@@ -871,8 +904,7 @@
                                                            newStatus
                                                            (cons elapsed time)))
                        (atomic-box-set! displayedSongBox dispSong)))]
-          [(pause) (let ([winWidth                     (cols)]
-                         [prevInfo (atomic-box-ref statusBox)])
+          [(pause) (let ([prevInfo (atomic-box-ref statusBox)])
                      (write-line win startingIndex (atomic-box-ref
                                                      displayedSongBox) #t)
 
