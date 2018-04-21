@@ -948,34 +948,18 @@
                                                            (cons elapsed time)))
                        (atomic-box-set! displayedSongBox origDisp)))]
           [(pause) (let ([prevInfo (atomic-box-ref statusBox)])
-                     (write-line win startingIndex (atomic-box-ref
-                                                     displayedSongBox) #t)
-
-                     (if (= winWidth (car prevInfo))
-                         (when (not (prev-status-state=? prevInfo " 𝍪 "))
-                           (let ([newStatus (list (cons
-                                                    (string-append
-                                                     " 𝍪 "
-                                                     (substring (caaadr
-                                                                  prevInfo) 3))
-                                                    (cdaadr prevInfo)))])
-                             (write-line win (1+ startingIndex) newStatus #t)
-                             (atomic-box-set! statusBox (list
-                                                          winWidth
-                                                          newStatus
-                                                          (caddr prevInfo)))))
-                       (let* ([prevTimes (caddr prevInfo)]
-                              [newStatus (list (cons (string-append
-                                                       " 𝍪 "
-                                                       (calc-progress-bar
-                                                        (car prevTimes)
-                                                        (cdr prevTimes)
-                                                        #f)) normal))])
+                     (when (not (prev-status-state=? prevInfo " 𝍪 "))
+                       (let ([newStatus (list (cons
+                                                (string-append
+                                                  " 𝍪 "
+                                                  (substring
+                                                    (caaadr prevInfo)
+                                                    3))
+                                                (cdaadr prevInfo)))])
                          (write-line win (1+ startingIndex) newStatus #t)
-                         (atomic-box-set! statusBox (list
-                                                      winWidth
-                                                      newStatus
-                                                      prevTimes)))))])
+                         (atomic-box-set!
+                           statusBox
+                           (list winWidth newStatus (caddr prevInfo))))))])
         (refresh win))
       (sleep 1)
       (set-display! win mpdClient statusBox displayedSongBox))
@@ -990,56 +974,59 @@
           [(#:get-window)                     window]
           [(#:get-height)                  setHeight]
           [(#:rebuild-play)
-               (let ([prevInfo      (atomic-box-ref sBox)]
-                     [startingIndex (- (lines) setHeight)])
-                 (write-line window startingIndex (atomic-box-ref dBox) #t)
-                 (write-line
-                   window
-                   (1+ startingIndex)
-                   (list (cons
-                           (string-append " ▶" (substring (caaadr prevInfo) 2))
-                           (cdaadr prevInfo)))
-                   #t))
-               (play-window window thread sBox dBox)]
+                (let ([prevInfo      (atomic-box-ref sBox)]
+                      [startingIndex (- (lines) setHeight)])
+                  (write-line window startingIndex (atomic-box-ref dBox) #t)
+                  (write-line
+                    window
+                    (1+ startingIndex)
+                    (list (cons
+                            (string-append " ▶" (substring (caaadr prevInfo) 2))
+                            (cdaadr prevInfo)))
+                    #t))
+                (play-window window thread sBox dBox)]
           [(#:rebuild-pause)
-               (let* ([startingIndex (- (lines) setHeight)]
-                      [prevInfo      (atomic-box-ref sBox)]
-                      [state             (caaadr prevInfo)]
-                      [sym           (substring state 0 2)])
-                 (write-line window startingIndex (atomic-box-ref dBox) #t)
-                 (write-line
-                   window
-                   (1+ startingIndex)
-                   (list (cons
-                           (string-append
-                             (cond
-                              [(string=? sym " 𝍪") " ▶"]
-                              [(string=? sym " ▶") " 𝍪"]
-                              [else                " ▪"])
-                             (substring state 2))         (cdaadr prevInfo)))
-                   #t))
-               (play-window window thread sBox dBox)]
-          [(#:rebuild-size)
-               (let* ([initIndex (- (lines) setHeight)]
-                      [winWidth                 (cols)]
-                      [prevInfo  (atomic-box-ref sBox)]
-                      [prevTimes      (caddr prevInfo)]
-                      [newStatus (list
-                                   (cons
-                                     (string-append
-                                       (substring (caaadr prevInfo) 0 3)
-                                       (calc-progress-bar
-                                         (car prevTimes)
-                                         (cdr prevTimes)
-                                         (prev-status-state=? prevInfo " ▪ ")))
-                                     (cdaadr prevInfo)))])
-                 (write-line window initIndex      (fit-displayed-song
+                (let* ([startingIndex (- (lines) setHeight)]
+                       [prevInfo      (atomic-box-ref sBox)]
+                       [state             (caaadr prevInfo)]
+                       [sym           (substring state 0 2)])
+                  (write-line window startingIndex (fit-displayed-song
                                                      (atomic-box-ref dBox)
-                                                     winWidth
-                                                     mpd)                   #t)
-                 (write-line window (1+ initIndex) newStatus                #t)
-                 (atomic-box-set! sBox (list winWidth newStatus prevTimes)))
-               (play-window window thread sBox dBox)]))))
+                                                     (cols)
+                                                     mpd)                  #t)
+                  (write-line
+                    window
+                    (1+ startingIndex)
+                    (list (cons
+                            (string-append
+                              (cond
+                               [(string=? sym " 𝍪") " ▶"]
+                               [(string=? sym " ▶") " 𝍪"]
+                               [else                " ▪"])
+                              (substring state 2))         (cdaadr prevInfo)))
+                    #t))
+                (play-window window thread sBox dBox)]
+          [(#:rebuild-size)
+                (let* ([initIndex (- (lines) setHeight)]
+                       [winWidth                 (cols)]
+                       [prevInfo  (atomic-box-ref sBox)]
+                       [prevTimes      (caddr prevInfo)]
+                       [newStatus (list
+                                    (cons
+                                      (string-append
+                                        (substring (caaadr prevInfo) 0 3)
+                                        (calc-progress-bar
+                                          (car prevTimes)
+                                          (cdr prevTimes)
+                                          (prev-status-state=? prevInfo " ▪ ")))
+                                      (cdaadr prevInfo)))])
+                  (write-line window initIndex      (fit-displayed-song
+                                                      (atomic-box-ref dBox)
+                                                      winWidth
+                                                      mpd)                  #t)
+                  (write-line window (1+ initIndex) newStatus               #t)
+                  (atomic-box-set! sBox (list winWidth newStatus prevTimes)))
+                (play-window window thread sBox dBox)]))))
 
 
 
