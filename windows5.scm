@@ -446,8 +446,9 @@
               (when (not (assq-ref selectModeDetails 'status))
                 (endwin)
                 (error (string-append
-                         "In procedure columned-window#:move-select: can't "
-                         "move selected columns while not in Selection Mode.")))
+                         "In procedure columned-window#:move-select: "
+                         "can't move which column is selected "
+                         "while not in Selection Mode.")))
               (let* ([moveAmount                             (car xs)]
                      [moveIsNeg                (negative? moveAmount)]
                      [lastIndex              (1- (length allColumns))]
