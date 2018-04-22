@@ -226,23 +226,23 @@
                                                                       [zero?     1]
                                                                       [positive? 0])])))]
           [(#:rebuild-manually)
-               (let ([newPercentage (car   xs)]
-                     [newOffset     (cadr  xs)]
-                     [clrHt         (caddr xs)])
-                 (clear-lines window (if clrHt
-                                         clrHt
-                                       (1+ (length columnLines))) 0 newOffset)
+                (let ([newPercentage (car   xs)]
+                      [newOffset     (cadr  xs)]
+                      [clrHt         (caddr xs)])
+                  (clear-lines window (if clrHt
+                                          clrHt
+                                        (1+ (length columnLines))) 0 newOffset)
 
-                 (column
-                   window
-                   format-line
-                   header
-                   columnLines
-                   newOffset
-                   (if (car percentage)
-                       (cons #t newPercentage)
-                     (cons #f (- (cols) newOffset)))
-                   isSorted))]))))
+                  (column
+                    window
+                    format-line
+                    header
+                    columnLines
+                    newOffset
+                    (if (car percentage)
+                        (cons #t newPercentage)
+                      (cons #f (- (cols) newOffset)))
+                    isSorted))]
 
   (define (columned-window window       playWindow mpdClient
                            masterList   allColumns selectModeDetails
