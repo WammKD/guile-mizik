@@ -243,6 +243,19 @@
                         (cons #t newPercentage)
                       (cons #f (- (cols) newOffset)))
                     isSorted))]
+          [(#:rebuild-position)
+                (let* ([newOffset                  (car  xs)]
+                       [isNewLast                  (cadr xs)]
+                       [isCurrLast    (not (car percentage))]
+                       [newPercentage
+                             (cond
+                              [(and (not isNewLast) isCurrLast)
+                                    (cons #t (/ (cdr percentage)    (cols)))]
+                              [(and isNewLast       (not isCurrLast))
+                                    (cons #f (-           (cols) newOffset))]
+                              [else percentage])])
+                  (column window      format-line header
+                          columnLines newOffset   newPercentage isSorted))]))))
 
   (define (columned-window window       playWindow mpdClient
                            masterList   allColumns selectModeDetails
@@ -585,6 +598,65 @@
                highlightPos
                begPos
                endPos)]
+        [(#:move-column)
+              (when (not (assq-ref selectModeDetails 'status))
+                (endwin)
+                (error (string-append
+                         "In procedure columned-window#:move-column: can't "
+                         "move selected columns while not in Selection Mode.")))
+              (let* ([oldIndex         (assq-ref selectModeDetails 'index)]
+                     [newIndex                       (+ oldIndex (car xs))]
+                     [allColumnsLength                 (length allColumns)])
+                (cond
+                 [(or (negative? newIndex) (>= newIndex allColumnsLength))
+                       (columned-window window       playWindow mpdClient
+                                        masterList   allColumns selectModeDetails
+                                        highlightPos begPos     endPos)]
+                 [else (clear-lines window (calculate-height) 0 0)
+
+                       (columned-window
+                         window
+                         playWindow
+                         mpdClient
+                         masterList
+                         (reverse
+                           (car (fold
+                                  (lambda (col result)
+                                    (let* ([prevOffset       (cadr result)]
+                                           [colIndex        (caddr result)]
+                                           [newCol     (col #:rebuild-position
+                                                              prevOffset
+                                                              (=
+                                                                allColumnsLength
+                                                                colIndex))])
+                                      (when (= colIndex newIndex)
+                                        (newCol #:highlight-column
+                                                  (playWindow #:get-height) #t))
+                                      (list
+                                        (cons newCol (car result))
+                                        (+ prevOffset (newCol #:get-width))
+                                        (1+ colIndex))))
+                                  (list '() 0 0)
+                                  (if (< newIndex oldIndex)
+                                      (append
+                                        (: allColumns 0             newIndex)
+                                        (list (list-ref allColumns oldIndex))
+                                        (: allColumns newIndex      oldIndex)
+                                        (: allColumns (1+ oldIndex)))
+                                    (append
+                                      (: allColumns 0             oldIndex)
+                                      (: allColumns (1+ oldIndex) (1+ newIndex))
+                                      (list (list-ref allColumns oldIndex))
+                                      (: allColumns (1+ newIndex)))))))
+                         (cons
+                           (car selectModeDetails)
+                           (alist 'index       newIndex
+                                  'sortedIndex (assq-ref
+                                                 selectModeDetails
+                                                 'sortedIndex)))
+                         highlightPos
+                         begPos
+                         endPos)]))]
         [(#:move-cursor)
               (let ([newPos               (+ highlightPos (car xs))]
                     [winLen                      (calculate-height)]

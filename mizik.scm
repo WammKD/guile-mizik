@@ -20,6 +20,8 @@
               [(261) #| KEY_RIGHT |# (columnedWin   #:move-select  1)]
               [(#\=)                 (columnedWin #:change-select  1)]
               [(#\-) #| KEY_ENTER |# (columnedWin #:change-select -1)]
+              [(339) #| KEY_PPAGE |# (columnedWin   #:move-column -1)]
+              [(338) #| KEY_NPAGE |# (columnedWin   #:move-column  1)]
               [(13 10 343 #\newline) (columnedWin #:leave-select)]
               [(#\s)                 (columnedWin #:sort-select)]
               [else                  columnedWin])
