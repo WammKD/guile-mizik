@@ -266,22 +266,24 @@
         [(#:get-max-x)                        (getmaxx  window)]
         [(#:is-in-mode)    (assq-ref selectModeDetails 'status)]
         [(#:refresh)                          (refresh  window)]
-        [(#:toggle-repeat) (mpd-connect mpdClient)
-                           (mpdPlaybackOption::repeat!
-                             mpdClient
-                             (not (assoc-ref
-                                    (get-mpd-response
-                                      (mpdStatus::status mpdClient))
-                                    'repeat)))
-                           (mpd-disconnect mpdClient)]
-        [(#:toggle-random) (mpd-connect mpdClient)
-                           (mpdPlaybackOption::random!
-                             mpdClient
-                             (not (assoc-ref
-                                    (get-mpd-response
-                                      (mpdStatus::status mpdClient))
-                                    'random)))
-                           (mpd-disconnect mpdClient)]
+        [(#:toggle-repeat) (let ([new (begin
+                                        (mpd-connect mpdClient)
+                                        (not (assoc-ref
+                                               (get-mpd-response
+                                                 (mpdStatus::status mpdClient))
+                                               'repeat)))])
+                             (playWindow #:rebuild-repeat new)
+                             (mpdPlaybackOption::repeat! mpdClient new)
+                             (mpd-disconnect mpdClient))]
+        [(#:toggle-random) (let ([new (begin
+                                        (mpd-connect mpdClient)
+                                        (not (assoc-ref
+                                               (get-mpd-response
+                                                 (mpdStatus::status mpdClient))
+                                               'random)))])
+                             (playWindow #:rebuild-random new)
+                             (mpdPlaybackOption::random! mpdClient new)
+                             (mpd-disconnect mpdClient))]
         [(#:set-vol)       (mpd-connect mpdClient)
                            (let ([newVol ((if (cadr xs) + -)
                                            (assoc-ref
@@ -916,7 +918,9 @@
                                                       winWidth
                                                       newStatus
                                                       (cons 0 0)))))
-                     (atomic-box-set! displayedSongBox dispSong))]
+                     (atomic-box-set! displayedSongBox (cons
+                                                         dispSong
+                                                         dispSong)))]
           [(play)  (mpd-connect mpdClient)
                    (let ([song (get-mpd-response
                                  (mpdStatus::current-song mpdClient))])
@@ -947,7 +951,9 @@
                                                            (cols)
                                                            newStatus
                                                            (cons elapsed time)))
-                       (atomic-box-set! displayedSongBox origDisp)))]
+                       (atomic-box-set! displayedSongBox (cons
+                                                           origDisp
+                                                           dispSong))))]
           [(pause) (let ([prevInfo (atomic-box-ref statusBox)])
                      (when (not (prev-status-state=? prevInfo " 𝍪 "))
                        (let ([newStatus (list (cons
@@ -972,12 +978,41 @@
                         (set-display! window (new-mpd-client) sBox dBox))))])
       (lambda (method . xs)
         (case method
-          [(#:get-window)                     window]
-          [(#:get-height)                  setHeight]
+          [(#:get-window)        window]
+          [(#:get-height)     setHeight]
+          [(#:rebuild-repeat) (let ([dispSong (cdr (atomic-box-ref dBox))])
+                                (write-line
+                                  window
+                                  (- (lines) setHeight)
+                                  (append
+                                    (: dispSong 0 -1)
+                                    (list (cons
+                                            (string-append
+                                              " "
+                                              (if (car xs) "↺" " ")
+                                              (substring (caar
+                                                           (: dispSong -1)) 2))
+                                            normal)))
+                                  #t))]
+          [(#:rebuild-random) (let ([dispSong (cdr (atomic-box-ref dBox))])
+                                (write-line
+                                  window
+                                  (- (lines) setHeight)
+                                  (append
+                                    (: dispSong 0 -1)
+                                    (list (cons
+                                            (string-append
+                                              (substring (caar
+                                                           (: dispSong -1)) 0 2)
+                                              (if (car xs) "⤭" " ")
+                                              " ")
+                                            normal)))
+                                  #t))]
           [(#:rebuild-play)
                 (let ([prevInfo      (atomic-box-ref sBox)]
                       [startingIndex (- (lines) setHeight)])
-                  (write-line window startingIndex (atomic-box-ref dBox) #t)
+                  (write-line window startingIndex (car
+                                                     (atomic-box-ref dBox)) #t)
                   (write-line
                     window
                     (1+ startingIndex)
@@ -992,7 +1027,8 @@
                        [state             (caaadr prevInfo)]
                        [sym           (substring state 0 2)])
                   (write-line window startingIndex (fit-displayed-song
-                                                     (atomic-box-ref dBox)
+                                                     (car (atomic-box-ref
+                                                            dBox))
                                                      (cols)
                                                      mpd)                  #t)
                   (write-line
@@ -1022,7 +1058,8 @@
                                           (prev-status-state=? prevInfo " ▪ ")))
                                       (cdaadr prevInfo)))])
                   (write-line window initIndex      (fit-displayed-song
-                                                      (atomic-box-ref dBox)
+                                                      (car (atomic-box-ref
+                                                             dBox))
                                                       winWidth
                                                       mpd)                  #t)
                   (write-line window (1+ initIndex) newStatus               #t)
