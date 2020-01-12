@@ -1,7 +1,8 @@
 #!/usr/bin/guile
 !#
 
-(define PLAY_WINDOW_HEIGHT 3)
+(define ELLIPSIS           "…")
+(define PLAY_WINDOW_HEIGHT   3)
 
 (define-syntax if-let-helper
   (syntax-rules ()
