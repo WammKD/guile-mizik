@@ -1,8 +1,11 @@
 #!/usr/bin/guile
 !#
 
-(define ELLIPSIS           "…")
-(define PLAY_WINDOW_HEIGHT   3)
+(define ELLIPSIS              "…")
+(define  PLAY_WINDOW_HEIGHT     3)
+(define  PLAY_STATUS_ICON   " ▶ ")
+(define PAUSE_STATUS_ICON   " 𝍪 ")
+(define  STOP_STATUS_ICON   " ▪ ")
 
 (define-syntax if-let-helper
   (syntax-rules ()
