@@ -2,6 +2,7 @@
 !#
 (use-modules (srfi srfi-1) (srfi srfi-9))
 (include     "./columns.scm")
+(include     "./play-window.scm")
 (include     "./select-mode-status.scm")
 (include     "./util.scm")
 
@@ -9,11 +10,12 @@
   (- (lines) PLAY_WINDOW_HEIGHT))
 
 (define-record-type <mizik-column-window>
-  (make-mizik-column-window window            mpdClient
-                            songList          columns
-                            selectModeDetails highlightPosition)
+  (make-mizik-column-window window    playWindow
+                            mpdClient songList
+                            columns   selectModeDetails highlightPosition)
   mizik-column-window?
   (window            curses-window       curses-window-set!)
+  (playWindow        play-window         play-window-set!)
   (mpdClient         mpd-client          mpd-client-set!)
   (songList          song-list           song-list-set!)
   (columns           columns             columns-set!)
@@ -27,6 +29,7 @@
                       'playlistlength)]
          [w         (make-mizik-column-window
                       (newwin winHeight (cols) 0 0)
+                      (generate-play-window winHeight)
                       client
                       (get-mpd-response (mpdPlaylistCurrent::playlist-info
                                           client
@@ -139,6 +142,9 @@
   (refresh stdScr)
   (clear   window)
   (resize  window newWinHeight (cols))
+
+  (when (play-window columnedWindow)
+    (rebuild-play-window (play-window columnedWindow)))
 
   (mpd-connect client)
   (let* ([songCount    (assq-ref
