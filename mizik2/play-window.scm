@@ -56,8 +56,8 @@
 (define (write-song-status win xstring len status)
   (let ([f (inverse-on (append
                          (let ([strLen (length xstring)])
-                           (if (> strLen len)
-                               (let ([sublist (list-head xstring (1- len))]
+                           (if (> strLen (- len 4))
+                               (let ([sublist (list-head xstring (- len 5))]
                                      [ellip   (normal #\…)])
                                  (set-xchar-attr!
                                    ellip
