@@ -66,7 +66,8 @@
                                  (append sublist (list ellip)))
                              (append
                                xstring
-                               (make-list (- len strLen) (normal #\space)))))
+                               (make-list (pos-or-to-zero
+                                            (- len strLen 4)) (normal #\space)))))
                          (normal (string-append/shared
                                    " "
                                    (if (assoc-ref status 'repeat) "↺" " ")
