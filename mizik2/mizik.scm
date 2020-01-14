@@ -13,7 +13,7 @@
     (main-loop
       standardScreen
       (if (equal? char KEY_RESIZE)
-          (rebuild standardScreen columnedWin)
+          (retry-on-fail (rebuild standardScreen columnedWin))
         (if (active? (select-mode-details columnedWin))
             (case char  ; Stupid case doesn't recognize variables
               [(260) #| KEY_LEFT  |# (columnedWin   #:move-select -1)]

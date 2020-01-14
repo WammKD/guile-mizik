@@ -57,6 +57,15 @@
     [(_ key [pred result] ...)                   (cond
                                                   [(pred key) result] ...)]))
 
+(define-syntax retry-on-fail
+  (syntax-rules ()
+    [(_ body ...) (let loop ()
+                    (catch #t
+                      (lambda ()
+                        body ...)
+                      (lambda (key . args)
+                        (loop))))]))
+
 (define (2+ num)
   (+ num 2))
 (define (2- num)
