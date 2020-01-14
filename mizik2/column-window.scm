@@ -180,6 +180,54 @@
 
   columnedWindow)
 
+;; Media calls
+(define (play columnedWindow)
+  (define client       (mpd-client         columnedWindow))
+  (define highlightPos (position-highlight columnedWindow))
+
+  (when (> highlightPos 0)
+    (mpd-connect client)
+    (mpdPlaybackControl::play
+      client
+      (+ (assq-ref (car (song-list
+                          columnedWindow)) 'Pos) (1- highlightPos)))
+    (mpd-disconnect     client)
+
+    (render-play-window (play-window columnedWindow) #f))
+
+  columnedWindow)
+
+(define (toggle-play columnedWindow)
+  (define client (mpd-client columnedWindow))
+
+  (mpd-connect client)
+  (if (string=?
+        (assoc-ref (get-mpd-response (mpdStatus::status client)) 'state)
+        "play")
+      (mpdPlaybackControl::pause client #t)
+    (mpdPlaybackControl::pause client #f))
+  (mpd-disconnect client)
+
+  (render-play-window (play-window columnedWindow) #f)
+
+  columnedWindow)
+
+(define (set-volume columnedWindow volDegree)
+  (define client (mpd-client columnedWindow))
+
+  (mpd-connect client)
+  (let ([newVol (+ (assoc-ref (get-mpd-response
+                                (mpdStatus::status client)) 'volume) volDegree)])
+    (mpdPlaybackOption::set-vol! client (cond
+                                         [(> newVol 100)    100]
+                                         [(< newVol   0)      0]
+                                         [else           newVol])))
+  (mpd-disconnect client)
+
+  columnedWindow)
+
+
+
 (define (render-column-window columnedWindow)
   (define window       (curses-window      columnedWindow))
   (define highlightPos (position-highlight columnedWindow))
