@@ -35,10 +35,10 @@
             [(13
               10
               343  ; KEY_ENTER
-            [(#\v)       (columnedWin #:set-vol 5 #t)  columnedWin]
-            [(#\V)       (columnedWin #:set-vol 5 #f)  columnedWin]
               #\newline)               (play        columnedWin)]
             [(#\space)                 (toggle-play columnedWin)]
+            [(#\v)                   (set-volume columnedWin  5)]
+            [(#\V)                   (set-volume columnedWin -5)]
             [(#\L)       (columnedWin #:toggle-repeat) columnedWin]
             [(#\R)       (columnedWin #:toggle-random) columnedWin]
             [(#\s)                    (columnedWin #:enter-select)]
