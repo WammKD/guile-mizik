@@ -114,7 +114,7 @@
                          newStatus
                          (make-mizik-time 0 0)))))
 
-                 (atomic-box-set! displayedSongBox (cons dispSong dispSong)))]
+                 (atomic-box-set! displayedSongBox #f))]
       [(play)  (mpd-connect client)
                (let ([song (get-mpd-response
                              (mpdStatus::current-song client))])
@@ -140,20 +140,44 @@
                        newStatus
                        (make-mizik-time elapsed time)))
 
-                   (atomic-box-set! displayedSongBox (cons ""#|origDisp|# dispSong))))]
+                   (atomic-box-set! displayedSongBox song)))]
       [(pause) (let ([prevInfo (atomic-box-ref statusBox)])
-                 (when (not (prev-status-info-state=? prevInfo PAUSE_STATUS_ICON))
-                   (let ([newStatus (string-append
-                                      PAUSE_STATUS_ICON
-                                      (prev-status-info-status-string prevInfo))])
-                     (addstr window newStatus #:x 0 #:y 1)
+                 (if (not (prev-status-info-win-dimens=? prevInfo winDimens))
+                     (let* ([song      (atomic-box-ref displayedSongBox)]
+                            [elapsed   (assoc-ref status 'elapsed)]
+                            [time      (assoc-ref song   'Time)]
+                            [newStatus (generate-progress-bar
+                                         window  PAUSE_STATUS_ICON
+                                         elapsed time              #f)]
+                            [dispSong  (write-song-status
+                                         window
+                                         (append
+                                           (normal " ")
+                                           (bold   (assoc-ref song 'Title))
+                                           (normal " from ")
+                                           (bold   (assoc-ref song 'Album))
+                                           (normal " by ")
+                                           (bold   (assoc-ref song 'Artist)))
+                                         winWidth
+                                         status)])
+                       (atomic-box-set!
+                         statusBox
+                         (generate-play-window-prev-status-info
+                           winDimens
+                           newStatus
+                           (make-mizik-time elapsed time))))
+                   (when (not (prev-status-info-state=? prevInfo PAUSE_STATUS_ICON))
+                     (let ([newStatus (string-append
+                                        PAUSE_STATUS_ICON
+                                        (prev-status-info-status-string prevInfo))])
+                       (addchstr window (inverse-on newStatus) #:x 0 #:y 1)
 
-                     (atomic-box-set!
-                       statusBox
-                       (generate-play-window-prev-status-info
-                         winDimens
-                         newStatus
-                         (prev-status-info-time prevInfo))))))])
+                       (atomic-box-set!
+                         statusBox
+                         (generate-play-window-prev-status-info
+                           winDimens
+                           newStatus
+                           (prev-status-info-time prevInfo)))))))])
 
     (refresh window))
 
