@@ -5,10 +5,9 @@
 (include     "./util.scm")
 
 (define-record-type <mizik-play-window>
-  (make-mizik-play-window window mpdClient runningThread statusBox displayedSongBox)
+  (make-mizik-play-window window runningThread statusBox displayedSongBox)
   mizik-play-window?
   (window            the-curses-window  the-curses-window-set!)
-  (mpdClient            the-mpd-client     the-mpd-client-set!)
   (runningThread        running-thread     running-thread-set!)
   (       statusBox         status-box         status-box-set!)
   (displayedSongBox displayed-song-box displayed-song-box-set!))
@@ -87,7 +86,7 @@
   (call-with-new-thread (lambda () (render-play-window playWindow #f))))
 
 (define (render-play-window playWin doRecurse)
-  (define client           (the-mpd-client     playWin))
+  (define client           (new-mpd-client))
   (define winWidth         (cols))
   (define winDimens        (cons winWidth (lines)))
   (define window           (the-curses-window  playWin))
@@ -166,7 +165,6 @@
 (define (generate-play-window columnWindowHeight)
   (let ([playWin (make-mizik-play-window
                    (newwin PLAY_WINDOW_HEIGHT (cols) columnWindowHeight 0)
-                   (new-mpd-client)
                    #f
                    (make-atomic-box #f)
                    (make-atomic-box #f))])
