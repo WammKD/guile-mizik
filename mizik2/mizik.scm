@@ -32,6 +32,10 @@
             [(339) #| KEY_PPAGE |# (move-cursor columnedWin -10)]
             [(#\p)                 (move-cursor columnedWin  -3)]
             [(259) #| KEY_UP    |# (move-cursor columnedWin  -1)]
+            [(402) #| KEY_SRIGHT |# (seek        columnedWin  "+5")]
+            [(393) #| KEY_SLEFT  |# (seek        columnedWin  "-5")]
+            [(261) #| KEY_RIGHT  |# (seek        columnedWin "+10")]
+            [(260) #| KEY_LEFT   |# (seek        columnedWin "-10")]
             [(13
               10
               343  ; KEY_ENTER
@@ -59,10 +63,8 @@
                                        ;; Shift
                                        [(#\2) (let ([nnC (getch w)])
                                                 (case nnC
-                                                  [(#\C) (columnedWin
-                                                           #:seek "+5")]
-                                                  [(#\D) (columnedWin
-                                                           #:seek "-5")]))]
+                                                  [(#\C) (seek columnedWin "+5")]
+                                                  [(#\D) (seek columnedWin "-5")]))]
                                        ;; Alt
                                        [(#\3) #t]
                                        ;; Alt + Shift
@@ -70,17 +72,13 @@
                                        ;; Ctrl
                                        [(#\5) (let ([nnC (getch w)])
                                                 (case nnC
-                                                  [(#\C) (columnedWin
-                                                           #:seek "+60")]
-                                                  [(#\D) (columnedWin
-                                                           #:seek "-60")]))]
+                                                  [(#\C) (seek columnedWin "+60")]
+                                                  [(#\D) (seek columnedWin "-60")]))]
                                        ;; Ctrl + Shift
                                        [(#\6) (let ([nnC (getch w)])
                                                 (case nnC
-                                                  [(#\C) (columnedWin
-                                                           #:seek "+10")]
-                                                  [(#\D) (columnedWin
-                                                           #:seek "-10")]))]
+                                                  [(#\C) (seek columnedWin "+10")]
+                                                  [(#\D) (seek columnedWin "-10")]))]
                                        ;; Ctrl + Alt
                                        [(#\7) #t]
                                        ;; Ctrl + Shift + Alt
