@@ -10,13 +10,12 @@
   (- (lines) PLAY_WINDOW_HEIGHT))
 
 (define-record-type <mizik-column-window>
-  (make-mizik-column-window window    playWindow
-                            mpdClient songList
-                            columns   selectModeDetails highlightPosition)
+  (make-mizik-column-window window            playWindow
+                            songList          columns
+                            selectModeDetails highlightPosition)
   mizik-column-window?
   (window            curses-window       curses-window-set!)
   (playWindow        play-window         play-window-set!)
-  (mpdClient         mpd-client          mpd-client-set!)
   (songList          song-list           song-list-set!)
   (columns           columns             columns-set!)
   (selectModeDetails select-mode-details select-mode-details-set!)
@@ -30,7 +29,6 @@
          [w         (make-mizik-column-window
                       (newwin winHeight (cols) 0 0)
                       (generate-play-window winHeight)
-                      client
                       (get-mpd-response (mpdPlaylistCurrent::playlist-info
                                           client
                                           0
@@ -45,7 +43,7 @@
     w))
 
 (define (move-cursor columnedWindow moveDegree)
-  (define client       (mpd-client columnedWindow))
+  (define client       (new-mpd-client))
   (define songCount    (begin
                          (mpd-connect client)
 
@@ -136,7 +134,7 @@
   (define       begPos (assq-ref (car (song-list columnedWindow)) 'Pos))
   (define inSongLstPos (+ begPos (1- highlightPos)))
   (define newFirstHalf (floor (/ newWinHeight 2)))
-  (define       client (mpd-client columnedWindow))
+  (define       client (new-mpd-client))
 
   (clear   stdScr)
   (refresh stdScr)
@@ -182,7 +180,7 @@
 
 ;; Media calls
 (define (play columnedWindow)
-  (define client       (mpd-client         columnedWindow))
+  (define client       (new-mpd-client))
   (define highlightPos (position-highlight columnedWindow))
 
   (when (> highlightPos 0)
@@ -198,7 +196,7 @@
   columnedWindow)
 
 (define (toggle-play columnedWindow)
-  (define client (mpd-client columnedWindow))
+  (define client (new-mpd-client))
 
   (mpd-connect client)
   (if (string=?
@@ -213,7 +211,7 @@
   columnedWindow)
 
 (define (set-volume columnedWindow volDegree)
-  (define client (mpd-client columnedWindow))
+  (define client (new-mpd-client))
 
   (mpd-connect client)
   (let ([newVol (+ (assoc-ref (get-mpd-response
