@@ -46,9 +46,9 @@
             [(#\L)                   (toggle-repeat columnedWin)]
             [(#\R)                   (toggle-random columnedWin)]
             [(#\s)                    (columnedWin #:enter-select)]
-            [(#\esc)     (nodelay! (columnedWin #:get-window) #t)
-                         (let* ([w (columnedWin #:get-window)]
-                                [c                  (getch w)])
+            [(#\esc)     (nodelay! standardScreen #t)
+                         (let* ([w standardScreen]
+                                [c      (getch w)])
                            (nodelay! w #f)
 
                            ;; If false, the user just pressed ESC
