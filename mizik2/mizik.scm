@@ -26,12 +26,12 @@
               [(#\s)                 (columnedWin #:sort-select)]
               [else                  columnedWin])
           (case char
-            [(338) #| KEY_NPAGE |# (move-cursor columnedWin  10)]
-            [(#\n)                 (move-cursor columnedWin   3)]
-            [(258) #| KEY_DOWN  |# (move-cursor columnedWin   1)]
-            [(339) #| KEY_PPAGE |# (move-cursor columnedWin -10)]
-            [(#\p)                 (move-cursor columnedWin  -3)]
-            [(259) #| KEY_UP    |# (move-cursor columnedWin  -1)]
+            [(338) #| KEY_NPAGE  |# (move-cursor columnedWin   10 )]
+            [(#\n)                  (move-cursor columnedWin    3 )]
+            [(258) #| KEY_DOWN   |# (move-cursor columnedWin    1 )]
+            [(339) #| KEY_PPAGE  |# (move-cursor columnedWin  -10 )]
+            [(#\p)                  (move-cursor columnedWin   -3 )]
+            [(259) #| KEY_UP     |# (move-cursor columnedWin   -1 )]
             [(402) #| KEY_SRIGHT |# (seek        columnedWin  "+5")]
             [(393) #| KEY_SLEFT  |# (seek        columnedWin  "-5")]
             [(261) #| KEY_RIGHT  |# (seek        columnedWin "+10")]
