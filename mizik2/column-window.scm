@@ -224,6 +224,45 @@
 
   columnedWindow)
 
+(define (toggle-repeat columnedWindow)
+  (define client (new-mpd-client))
+
+  (mpd-connect client)
+  (mpdPlaybackOption::repeat! client (not (assoc-ref
+                                            (get-mpd-response
+                                              (mpdStatus::status client))
+                                            'repeat)))
+  (mpd-disconnect client)
+
+  (render-play-window (play-window columnedWindow) #f)
+
+  columnedWindow)
+
+(define (toggle-random columnedWindow)
+  (define client (new-mpd-client))
+
+  (mpd-connect client)
+  (mpdPlaybackOption::random! client (not (assoc-ref
+                                            (get-mpd-response
+                                              (mpdStatus::status client))
+                                            'random)))
+  (mpd-disconnect client)
+
+  (render-play-window (play-window columnedWindow) #f)
+
+  columnedWindow)
+
+(define (seek columnedWindow seekDegree)
+  (define client (new-mpd-client))
+
+  (mpd-connect    client)
+  (mpdPlaybackControl::seek-current client seekDegree)
+  (mpd-disconnect client)
+
+  (render-play-window (play-window columnedWindow) #f)
+
+  columnedWindow)
+
 
 
 (define (render-column-window columnedWindow)
