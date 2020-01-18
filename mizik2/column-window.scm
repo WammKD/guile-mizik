@@ -266,6 +266,43 @@
 
   columnedWindow)
 
+(define (move-column-position columnedWindow moveDegree)
+  (define theCols           (columns             columnedWindow))
+  (define selectModeDetails (select-mode-details columnedWindow))
+  (define colIndex          (index selectModeDetails))
+  (define theColumn         (list-ref theCols colIndex))
+
+  (if (not (active? selectModeDetails))
+      (begin
+        (endwin)
+        (error (string-append
+                 "In procedure move-column-position: can't "
+                 "move column while not in Selection Mode.")))
+    (when (< -1 (+ colIndex moveDegree) (length theCols))
+      (columns-set! columnedWindow (append
+                                     (list-head theCols (if (positive? moveDegree)
+                                                            colIndex
+                                                          (+ colIndex moveDegree)))
+                                     (if (negative? moveDegree)
+                                         (list theColumn)
+                                       (list-head
+                                         (list-tail theCols (1+ colIndex))
+                                         moveDegree))
+                                     (if (positive? moveDegree)
+                                         (list theColumn)
+                                       (list-head
+                                         (list-tail theCols (+ colIndex moveDegree))
+                                         (abs moveDegree)))
+                                     (if (negative? moveDegree)
+                                         (list-tail theCols (1+ colIndex))
+                                       (list-tail theCols (+ 1 colIndex moveDegree)))))
+
+      (index-set! selectModeDetails (+ colIndex moveDegree))
+
+      (render-column-window columnedWindow)))
+
+  columnedWindow)
+
 ;; Media calls
 (define (play columnedWindow)
   (define client       (new-mpd-client))
