@@ -11,3 +11,7 @@
 
 (define (initialize-select-mode-status)
   (make-select-mode-status #f #f #f))
+
+(define (enter selectModeStatus)
+  (active-set! selectModeStatus #t)
+  (index-set!  selectModeStatus 0))
