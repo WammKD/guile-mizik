@@ -178,6 +178,20 @@
 
   columnedWindow)
 
+(define (enter-select-mode columnedWindow)
+  (enter (select-mode-details columnedWindow))
+
+  (render-column-window columnedWindow)
+
+  columnedWindow)
+
+(define (leave-select-mode columnedWindow)
+  (active-set! (select-mode-details columnedWindow) #f)
+
+  (render-column-window columnedWindow)
+
+  columnedWindow)
+
 ;; Media calls
 (define (play columnedWindow)
   (define client       (new-mpd-client))
@@ -277,11 +291,11 @@
                                   (columns columnedWindow))
                                 (song-list columnedWindow))]
                     [isHeader #t]
-                    [index    0])
-    (addstr
+                    [rowIndex  0])
+    (addchstr
       window
       (let process-cols ([theCols (columns columnedWindow)]
-                         [rowStr                        ""]
+                         [rowStr               (normal "")]
                          [offset                         0])
         (if (null? theCols)
             rowStr
@@ -300,38 +314,45 @@
                                                 [positive? "▲"]) " ")])
             (process-cols
               (cdr theCols)
-              (string-append
+              (append
                 rowStr
-                (cond
-                 [(<= columnWidth 0)                                   ""]
-                 [(=  columnWidth 1)                             ELLIPSIS]
-                 [(=  columnWidth 2)  (string-append ELLIPSIS colPartEnd)]
-                 [(>
-                    colPartLen
-                    (1- columnWidth)) (string-append
-                                        (substring finalColPart 0 (2- columnWidth))
-                                        ELLIPSIS
-                                        colPartEnd)]
-                 [(=
-                    colPartLen
-                    (1- columnWidth)) (string-append finalColPart colPartEnd)]
-                 [(=
-                    colPartLen
-                    columnWidth)      (string-append finalColPart " " colPartEnd)]
-                 [else                (string-append
-                                        finalColPart
-                                        (make-string (-
-                                                       columnWidth
-                                                       (string-length finalColPart)
-                                                       2) #\space)
-                                        colPartEnd
-                                        " ")]))
+                ((if (and
+                       (active? (select-mode-details columnedWindow))
+                       (equal?
+                         (- (length (columns columnedWindow)) (length theCols))
+                         (index (select-mode-details columnedWindow))))
+                     inverse-on
+                   normal)
+                  (cond
+                   [(<= columnWidth 0)                                   ""]
+                   [(=  columnWidth 1)                             ELLIPSIS]
+                   [(=  columnWidth 2)  (string-append ELLIPSIS colPartEnd)]
+                   [(>
+                      colPartLen
+                      (1- columnWidth)) (string-append
+                                          (substring finalColPart 0 (2- columnWidth))
+                                          ELLIPSIS
+                                          colPartEnd)]
+                   [(=
+                      colPartLen
+                      (1- columnWidth)) (string-append finalColPart colPartEnd)]
+                   [(=
+                      colPartLen
+                      columnWidth)      (string-append finalColPart " " colPartEnd)]
+                   [else                (string-append
+                                          finalColPart
+                                          (make-string (-
+                                                         columnWidth
+                                                         (string-length finalColPart)
+                                                         2) #\space)
+                                          colPartEnd
+                                          " ")])))
               (+ offset columnWidth)))))
       #:x 0
-      #:y index)
+      #:y rowIndex)
 
     (when (not (null? (cdr rows)))
-      (render-rows (cdr rows) #f (1+ index))))
+      (render-rows (cdr rows) #f (1+ rowIndex))))
 
   (chgat window -1 A_REVERSE 0 #:x 0 #:y 0)
   (if (>= highlightPos (getmaxy window))
