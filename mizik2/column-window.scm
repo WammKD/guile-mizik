@@ -209,6 +209,63 @@
 
   columnedWindow)
 
+(define (change-column-size columnedWindow moveDegree)
+  (define        charPerc          (/ moveDegree (cols)))
+  (define        selectMode        (select-mode-details columnedWindow))
+  (define-values (selCol restCols) (let* ([lst (list-tail
+                                                 (columns columnedWindow)
+                                                 (index selectMode))])
+                                     (values (car lst) (cdr lst))))
+  (define        isNotLastCol      (<
+                                     (index selectMode)
+                                     (1- (length (columns columnedWindow)))))
+  (define        fractPerc         (if (not isNotLastCol)
+                                       #f
+                                     (/ (* charPerc -1) (length restCols))))
+
+  (define (calc-new-percs possibleNew processing remainingPerc noneChangedYet)
+    (cond
+     [(zero? remainingPerc) (append possibleNew processing)]
+     [(and
+        (null? processing)
+        noneChangedYet)     #f]
+     [(null? processing)    (calc-new-percs '() possibleNew remainingPerc #t)]
+     [else                  (if (< (* (+ fractPerc (car processing)) (cols)) 3)
+                                (calc-new-percs
+                                  (append possibleNew (list (car processing)))
+                                  (cdr processing)
+                                  remainingPerc
+                                  noneChangedYet)
+                              (calc-new-percs
+                                (append possibleNew (list (+
+                                                            (car processing)
+                                                            fractPerc)))
+                                (cdr processing)
+                                (- remainingPerc (abs fractPerc))
+                                #f))]))
+
+  (if (not (active? selectMode))
+      (begin
+        (endwin)
+        (error (string-append
+                 "In procedure change-column-size: "
+                 "can't change size of selected column "
+                 "while not in Selection Mode.")))
+    (when (and isNotLastCol (not (< (* (+ (percentage selCol) charPerc) (cols)) 3)))
+      (let ([percs (calc-new-percs '() (map percentage restCols) (abs charPerc) #t)])
+        (when percs
+          (percentage-set! selCol (+ (percentage selCol) charPerc))
+
+          (for-each
+            (lambda (newColumnPercentage aCol)
+              (percentage-set! aCol newColumnPercentage))
+            percs
+            restCols)
+
+          (render-column-window columnedWindow)))))
+
+  columnedWindow)
+
 ;; Media calls
 (define (play columnedWindow)
   (define client       (new-mpd-client))
