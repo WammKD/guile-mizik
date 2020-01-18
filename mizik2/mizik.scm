@@ -16,15 +16,15 @@
           (retry-on-fail (rebuild standardScreen columnedWin))
         (if (active? (select-mode-details columnedWin))
             (case char  ; Stupid case doesn't recognize variables
-              [(260) #| KEY_LEFT  |# (columnedWin   #:move-select -1)]
-              [(261) #| KEY_RIGHT |# (columnedWin   #:move-select  1)]
-              [(#\=)                 (columnedWin #:change-select  1)]
-              [(#\-) #| KEY_ENTER |# (columnedWin #:change-select -1)]
-              [(339) #| KEY_PPAGE |# (columnedWin   #:move-column -1)]
-              [(338) #| KEY_NPAGE |# (columnedWin   #:move-column  1)]
-              [(13 10 343 #\newline) (columnedWin #:leave-select)]
               [(#\s)                 (columnedWin #:sort-select)]
               [else                  columnedWin])
+              [(260) #| KEY_LEFT  |# (move-select-mode     columnedWin -1)]
+              [(261) #| KEY_RIGHT |# (move-select-mode     columnedWin  1)]
+              [(#\=)                 (change-column-size   columnedWin  1)]
+              [(#\-) #| KEY_ENTER |# (change-column-size   columnedWin -1)]
+              [(339) #| KEY_PPAGE |# (move-column-position columnedWin -1)]
+              [(338) #| KEY_NPAGE |# (move-column-position columnedWin  1)]
+              [(13 10 343 #\newline)       (leave-select-mode columnedWin)]
           (case char
             [(338) #| KEY_NPAGE  |# (move-cursor columnedWin   10 )]
             [(#\n)                  (move-cursor columnedWin    3 )]
@@ -45,7 +45,7 @@
             [(#\V)                   (set-volume columnedWin -5)]
             [(#\L)                   (toggle-repeat columnedWin)]
             [(#\R)                   (toggle-random columnedWin)]
-            [(#\s)                    (columnedWin #:enter-select)]
+            [(#\s)               (enter-select-mode columnedWin)]
             [(#\esc)     (nodelay! standardScreen #t)
                          (let* ([w standardScreen]
                                 [c      (getch w)])
@@ -87,7 +87,7 @@
                                  columnedWin)
                              ;; Escape key, only
                              columnedWin))]
-            [else                                     columnedWin]))))))
+            [else                                    columnedWin]))))))
 
 ;; Initialize the main screen and settings
 (define stdscr (initscr))
